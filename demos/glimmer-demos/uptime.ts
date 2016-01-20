@@ -83,14 +83,14 @@ function start() {
   console.time('rendering');
   env.begin();
 
-  let result = app.render({ servers: servers() }, env, { appendTo: output });
+  let result = app.render({ _meta: null, servers: servers() }, env, { appendTo: output });
 
   console.log(env['createdComponents'].length);
   env.commit();
   console.timeEnd('rendering');
 
   clear = setInterval(function() {
-    result.self.update({ servers: servers() });
+    result.self.update({ _meta: null, servers: servers() });
     console.time('updating');
     result.rerender();
     console.timeEnd('updating');
@@ -117,8 +117,8 @@ function server(name: string) {
 
   for (let i=0; i<=364; i++) {
     let up = Math.random() > 0.2;
-    days.push({ number: i, up });
+    days.push({ _meta: null, number: i, up });
   }
 
-  return { name, days };
+  return { _meta: null, name, days };
 }

@@ -1,6 +1,12 @@
 import world from 'worlds/one';
 import { TestEnvironment, EmberishGlimmerComponent as EmberComponent } from 'glimmer-demos';
 
+world._meta = null;
+
+for(let i=0;i<world.cells.length;i++) {
+  world.cells[i]._meta = null;
+}
+
 // // Bare version
 // const app = `{{#each world.cells key="key" as |cell|}}<organism-cell class="{{if cell.isAlive "alive" ""}}" style="top: {{cell.y}}0px; left: {{cell.x}}0px"/>{{/each}}`;
 
@@ -16,10 +22,10 @@ let res;
 
 function startGlimmer() {
   env.begin();
-  res = env.compile(app).render({ world }, env, { appendTo: document.body });
+  res = env.compile(app).render({ _meta: null, world }, env, { appendTo: document.body });
   env.commit();
 
-  requestAnimationFrame(rerenderGlimmer);
+  // requestAnimationFrame(rerenderGlimmer);
 }
 
 function rerenderGlimmer() {

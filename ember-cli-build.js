@@ -57,6 +57,10 @@ module.exports = function() {
 
   var demos = merge([
     demoConcat,
+    find(__dirname + '/demos/glimmer-demos', {
+      include: ['conways-vendor.js'],
+      destDir: 'demos'
+    }),
     find(__dirname + '/demos', {
       include: ['*.html'],
       destDir: 'demos'
