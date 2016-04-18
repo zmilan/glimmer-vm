@@ -4,6 +4,7 @@ import { ReferenceCache, isModified, isConst, map } from 'glimmer-reference';
 import { Opaque, dict } from 'glimmer-util';
 import { Bounds, clear } from '../../bounds';
 import { Fragment } from '../../builder';
+import { Insertion, SafeString, isSafeString } from '../../environment';
 
 export function normalizeTextValue(value: Opaque): string {
   if (value === null || value === undefined || typeof value['toString'] !== 'function') {
@@ -13,16 +14,12 @@ export function normalizeTextValue(value: Opaque): string {
   }
 }
 
-export function normalizeTextOrTrustedValue(value: Opaque): Opaque {
+export function normalizeTextOrTrustedValue(value: Opaque): Insertion {
   if (isSafeString(value)) {
     return value;
   } else {
     return normalizeTextValue(value);
   }
-}
-
-export function isSafeString(value: Opaque): boolean {
-  return value && typeof value['toHTML'] === 'function';
 }
 
 abstract class UpdatingContentOpcode extends UpdatingOpcode {
@@ -44,11 +41,11 @@ export class AppendOpcode extends Opcode {
     let value = cache.peek();
 
     if (isSafeString(value)) {
-      let bounds = vm.stack().insertHTMLBefore(null, value);
+      let bounds = vm.stack().insertHTMLBefore(null, value.toHTML());
       vm.updateWith(new UpdateCautiousAppendOpcode(cache, bounds, null));
     } else {
       if (isConst(reference)) {
-        vm.stack().appendText(cache.peek());
+        vm.stack().appendText(value);
       } else {
         let bounds = vm.stack().insertTextBefore(null, value);
         vm.updateWith(new UpdateCautiousAppendOpcode(cache, bounds, bounds.firstNode() as Text));
@@ -123,11 +120,11 @@ export class UpdateTrustingAppendOpcode extends UpdatingContentOpcode {
 
 export class UpdateCautiousAppendOpcode extends UpdatingContentOpcode {
   type = 'update-cautious-append';
-  private cache: ReferenceCache<string>;
+  private cache: ReferenceCache<Insertion>;
   private bounds: Fragment;
   private textNode: Text;
 
-  constructor(cache: ReferenceCache<string>, bounds: Fragment, textNode: Text) {
+  constructor(cache: ReferenceCache<Insertion>, bounds: Fragment, textNode: Text) {
     super();
     this.cache = cache;
     this.bounds = bounds;
