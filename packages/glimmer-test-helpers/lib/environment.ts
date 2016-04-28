@@ -885,7 +885,7 @@ class WithKeywordsSyntax extends StatementSyntax {
 
     dsl.putArgs(args);
     dsl.pushDynamicScope();
-    dsl.bindDynamicScope({ callback });
+    dsl.bindDynamicScope(callback);
     dsl.evaluate('default');
     dsl.popDynamicScope();
 

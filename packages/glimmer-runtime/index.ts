@@ -68,7 +68,6 @@ export {
 } from './lib/opcodes';
 
 export {
-  PushRootScopeOpcode,
   PushChildScopeOpcode,
   PopScopeOpcode,
   PushDynamicScopeOpcode,

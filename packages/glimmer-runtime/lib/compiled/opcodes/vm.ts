@@ -24,24 +24,6 @@ export class PushChildScopeOpcode extends Opcode {
   }
 }
 
-export interface PushRootScopeOptions {
-  size: number;
-}
-
-export class PushRootScopeOpcode extends Opcode {
-  public type = "push-root-scope";
-  public size: number;
-
-  constructor({ size }: { size: number }) {
-    super();
-    this.size = size;
-  }
-
-  evaluate(vm: VM) {
-    vm.pushRootScope(vm.frame.getOperand(), this.size);
-  }
-}
-
 export class PopScopeOpcode extends Opcode {
   public type = "pop-scope";
 

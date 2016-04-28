@@ -137,7 +137,7 @@ export class InlineBlockCompiler extends Compiler {
     let { program } = block;
 
     if (block.hasPositionalParameters()) {
-      ops.bindPositionalArgs({ block });
+      ops.bindPositionalArgs(block);
     }
 
     let current = program.head();
@@ -260,11 +260,11 @@ class WrappedBuilder {
 
     if (this.tag.isDynamic) {
       let tag = makeFunctionExpression(this.tag.dynamicTagName);
-      list.putValue({ expression: tag });
+      list.putValue(tag);
       list.openDynamicPrimitiveElement();
     } else {
       let tag = this.tag.staticTagName;
-      list.openPrimitiveElement({ tag });
+      list.openPrimitiveElement(tag);
     }
 
     list.didCreateElement();
@@ -370,26 +370,29 @@ class ComponentBuilder {
   static({ definition, args, shadow, templates }: StaticComponentOptions) {
     let { dsl, env } = this;
 
-    // let args = rawArgs.compile(dsl, env);
+    dsl.startBlock({ templates });
     dsl.openComponent({ definition, args, shadow, templates });
     dsl.closeComponent();
+    dsl.endBlock();
   }
 
   dynamic({ definition, args, shadow, templates }: DynamicComponentOptions) {
     let { dsl, env } = this;
 
     dsl.startLabels();
+    dsl.startBlock({ templates });
 
     dsl.enter('BEGIN', 'END');
     dsl.label('BEGIN');
     dsl.putArgs(definition.args);
-    dsl.putComponentDefinition(definition)
+    dsl.putComponentDefinition(definition.factory)
     dsl.putArgs(args);
-    dsl.openDynamicComponent({ shadow, templates });
+    dsl.openDynamicComponent(shadow);
     dsl.closeComponent();
     dsl.label('END');
     dsl.exit();
 
+    dsl.endBlock();
     dsl.stopLabels();
   }
 }

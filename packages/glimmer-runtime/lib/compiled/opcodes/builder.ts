@@ -14,6 +14,7 @@ import { CompiledExpression } from '../expressions';
 import { ComponentDefinition } from '../../component/interfaces';
 import InnerOpcodeBuilder from '../../opcode-builder';
 import Environment from '../../environment';
+import { InlineBlock } from '../blocks';
 
 interface CompilesInto<T> {
   compile(dsl: OpcodeBuilder, env: Environment): T;
@@ -118,18 +119,21 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
 
   // components
 
-  putComponentDefinition(options: { factory: component.DynamicComponentFactory<Opaque> }) {
-    this.append(new component.PutComponentDefinitionOpcode(options));
+  putComponentDefinition(factory: component.DynamicComponentFactory<Opaque>) {
+    this.append(new component.PutComponentDefinitionOpcode({ factory }));
   }
 
-  openDynamicComponent(options: component.OpenDynamicComponentOptions) {
-    this.append(new component.OpenDynamicComponentOpcode(options));
+  openDynamicComponent(shadow: InternedString[]) {
+    let { templates } = this;
+    this.append(new component.OpenDynamicComponentOpcode({ shadow, templates }));
   }
 
-  openComponent({ definition, args, shadow, templates }: OpenComponentOptions) {
+  openComponent({ definition, args, shadow }: OpenComponentOptions) {
+    let { env, templates } = this;
+
     this.append(new component.OpenComponentOpcode({
       definition,
-      args: args.compile(this, this.env),
+      args: args.compile(this, env),
       shadow,
       templates
     }));
@@ -159,12 +163,12 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
 
   // dom
 
-  text(options: { text: InternedString }) {
-    this.append(new dom.TextOpcode(options));
+  text(text: InternedString) {
+    this.append(new dom.TextOpcode({ text }));
   }
 
-  openPrimitiveElement(options: { tag: InternedString }) {
-    this.append(new dom.OpenPrimitiveElementOpcode(options));
+  openPrimitiveElement(tag: InternedString) {
+    this.append(new dom.OpenPrimitiveElementOpcode({ tag }));
   }
 
   openDynamicPrimitiveElement() {
@@ -191,8 +195,8 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
     this.append(new dom.DynamicPropOpcode(options));
   }
 
-  comment(options: dom.CommentOptions) {
-    this.append(new dom.CommentOpcode(options));
+  comment(comment: InternedString) {
+    this.append(new dom.CommentOpcode({ comment }));
   }
 
   // lists
@@ -227,10 +231,6 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
     this.append(new vm.PushChildScopeOpcode());
   }
 
-  pushRootScope(options: vm.PushRootScopeOptions) {
-    this.append(new vm.PushRootScopeOpcode(options));
-  }
-
   popScope() {
     this.append(new vm.PopScopeOpcode());
   }
@@ -247,7 +247,7 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
     this.append(new vm.PutNullOpcode());
   }
 
-  putValue({ expression }: { expression: CompilesInto<CompiledExpression<Opaque>> }) {
+  putValue(expression: CompilesInto<CompiledExpression<Opaque>>) {
     this.append(new vm.PutValueOpcode({ expression: expression.compile(this, this.env) }));
   }
 
@@ -255,19 +255,19 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
     this.append(new vm.PutArgsOpcode({ args: args.compile(this, this.env) }));
   }
 
-  bindPositionalArgs(options: vm.BindPositionalArgsOptions) {
-    this.append(new vm.BindPositionalArgsOpcode(options));
+  bindPositionalArgs(block: InlineBlock) {
+    this.append(new vm.BindPositionalArgsOpcode({ block }));
   }
 
-  bindNamedArgs(options: vm.BindNamedArgsOptions) {
-    this.append(new vm.BindNamedArgsOpcode(options));
+  bindNamedArgs(named: Dict<number>) {
+    this.append(new vm.BindNamedArgsOpcode({ named }));
   }
 
-  bindBlocks(options: vm.BindBlocksOptions) {
-    this.append(new vm.BindBlocksOpcode(options));
+  bindBlocks(blocks: Dict<number>) {
+    this.append(new vm.BindBlocksOpcode({ blocks }));
   }
 
-  bindDynamicScope({ callback }: { callback: vm.BindDynamicScopeCallback }) {
+  bindDynamicScope(callback: vm.BindDynamicScopeCallback) {
     this.append(new vm.BindDynamicScopeOpcode(callback));
   }
 
