@@ -382,9 +382,9 @@ class ComponentBuilder {
 
     dsl.enter('BEGIN', 'END');
     dsl.label('BEGIN');
-    dsl.putArgs({ args: definition.args });
+    dsl.putArgs(definition.args);
     dsl.putComponentDefinition(definition)
-    dsl.putArgs({ args: args });
+    dsl.putArgs(args);
     dsl.openDynamicComponent({ shadow, templates });
     dsl.closeComponent();
     dsl.label('END');

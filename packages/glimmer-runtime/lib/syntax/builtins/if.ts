@@ -51,29 +51,31 @@ export default class IfSyntax extends StatementSyntax {
     // END:   Noop
     //        Exit
 
-    let { args } = this;
+    let { args, templates } = this;
 
     dsl.startLabels();
+    dsl.startBlock({ templates });
 
     dsl.enter('BEGIN', 'END');
     dsl.label('BEGIN');
-    dsl.putArgs({ args });
+    dsl.putArgs(args);
     dsl.test();
 
-    if (this.templates.inverse) {
+    if (templates.inverse) {
       dsl.jumpUnless('ELSE');
-      dsl.evaluate({ debug: "default", block: this.templates.default });
+      dsl.evaluate('default');
       dsl.jump('END');
       dsl.label('ELSE');
-      dsl.evaluate({ debug: "inverse", block: this.templates.inverse })
+      dsl.evaluate('inverse')
     } else {
       dsl.jumpUnless('END');
-      dsl.evaluate({ debug: "default", block: this.templates.default });
+      dsl.evaluate('default');
     }
 
     dsl.label('END');
     dsl.exit();
 
+    dsl.endBlock();
     dsl.stopLabels();
   }
 }

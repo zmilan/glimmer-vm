@@ -54,26 +54,28 @@ export default class UnlessSyntax extends StatementSyntax {
     let { args, templates } = this;
 
     dsl.startLabels();
+    dsl.startBlock({ templates });
 
     dsl.enter('BEGIN', 'END');
-    dsl.append(dsl.labelFor('BEGIN'));
-    dsl.putArgs({ args });
+    dsl.label('BEGIN');
+    dsl.putArgs(args);
     dsl.test();
 
     if (templates.inverse) {
       dsl.jumpIf('ELSE');
-      dsl.evaluate({ debug: "default", block: templates.default })
+      dsl.evaluate('default')
       dsl.jump('END');
       dsl.label('ELSE');
-      dsl.evaluate({ debug: "inverse", block: templates.inverse });
+      dsl.evaluate('inverse');
     } else {
       dsl.jumpIf('END');
-      dsl.evaluate({ debug: "default", block: templates.default });
+      dsl.evaluate('default');
     }
 
     dsl.label('END');
     dsl.exit();
 
+    dsl.endBlock();
     dsl.stopLabels();
   }
 }

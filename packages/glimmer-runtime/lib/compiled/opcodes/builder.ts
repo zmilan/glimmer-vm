@@ -77,6 +77,7 @@ interface OpenComponentOptions {
 
 export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
   private labelsStack = new Stack<Dict<vm.LabelOpcode>>();
+  private templatesStack = new Stack<Syntax.Templates>();
 
   constructor(inner: StatementCompilationBuffer, public env: Environment) {
     super(inner);
@@ -86,6 +87,18 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
 
   get labels() {
     return this.labelsStack.current;
+  }
+
+  get templates() {
+    return this.templatesStack.current;
+  }
+
+  startBlock({ templates }: { templates: Syntax.Templates }) {
+    this.templatesStack.push(templates);
+  }
+
+  endBlock() {
+    this.templatesStack.pop();
   }
 
   startLabels() {
@@ -238,7 +251,7 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
     this.append(new vm.PutValueOpcode({ expression: expression.compile(this, this.env) }));
   }
 
-  putArgs({ args }: { args: CompilesInto<CompiledArgs> }) {
+  putArgs(args: CompilesInto<CompiledArgs>) {
     this.append(new vm.PutArgsOpcode({ args: args.compile(this, this.env) }));
   }
 
@@ -266,8 +279,8 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
     this.append(new vm.ExitOpcode());
   }
 
-  evaluate(options: vm.EvaluateOptions) {
-    this.append(new vm.EvaluateOpcode(options));
+  evaluate(name: string) {
+    this.append(new vm.EvaluateOpcode({ debug: name, block: this.templates[name] }));
   }
 
   test() {
