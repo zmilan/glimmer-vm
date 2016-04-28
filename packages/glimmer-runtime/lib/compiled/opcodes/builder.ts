@@ -5,7 +5,7 @@ import * as lists from './lists';
 import * as vm from './vm';
 import * as Syntax from '../../syntax/core';
 
-import { Opaque, InternedString } from 'glimmer-util';
+import { Stack, Dict, Opaque, InternedString, dict } from 'glimmer-util';
 import { Insertion } from '../../upsert';
 import { Expression, CompileInto, StatementCompilationBuffer } from '../../syntax';
 import { Opcode, OpSeq } from '../../opcodes';
@@ -19,7 +19,10 @@ interface CompilesInto<T> {
   compile(dsl: OpcodeBuilder, env: Environment): T;
 }
 
+export type Label = string;
+
 class StatementCompilationBufferProxy implements StatementCompilationBuffer {
+
   constructor(protected inner: StatementCompilationBuffer) {}
 
   get component() {
@@ -73,8 +76,31 @@ interface OpenComponentOptions {
 
 
 export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
+  private labelsStack = new Stack<Dict<vm.LabelOpcode>>();
+
   constructor(inner: StatementCompilationBuffer, public env: Environment) {
     super(inner);
+  }
+
+  // helpers
+
+  get labels() {
+    return this.labelsStack.current;
+  }
+
+  startLabels() {
+    this.labelsStack.push(dict<vm.LabelOpcode>());
+  }
+
+  stopLabels() {
+    this.labelsStack.pop();
+  }
+
+  labelFor(label: string): vm.LabelOpcode {
+    let labels = this.labels;
+
+    if (labels[label]) return labels[label];
+    else return labels[label] = new vm.LabelOpcode(label);
   }
 
   // components
@@ -162,23 +188,27 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
     this.append(new lists.PutIteratorOpcode());
   }
 
-  enterList({ start, end }: { start: vm.LabelOpcode, end: vm.LabelOpcode }) {
-    this.append(new lists.EnterListOpcode(start, end));
+  enterList(start: string, end: string) {
+    this.append(new lists.EnterListOpcode(this.labelFor(start), this.labelFor(end)));
   }
 
   exitList() {
     this.append(new lists.ExitListOpcode());
   }
 
-  enterWithKey({ start, end }: { start: vm.LabelOpcode, end: vm.LabelOpcode }) {
-    this.append(new lists.EnterWithKeyOpcode(start, end));
+  enterWithKey(start: string, end: string) {
+    this.append(new lists.EnterWithKeyOpcode(this.labelFor(start), this.labelFor(end)));
   }
 
-  nextIter({ end }: { end: vm.LabelOpcode }) {
-    this.append(new lists.NextIterOpcode(end));
+  nextIter(end: string) {
+    this.append(new lists.NextIterOpcode(this.labelFor(end)));
   }
 
   // vm
+
+  label(name: string) {
+    this.append(this.labelFor(name));
+  }
 
   pushChildScope() {
     this.append(new vm.PushChildScopeOpcode());
@@ -228,16 +258,12 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
     this.append(new vm.BindDynamicScopeOpcode(callback));
   }
 
-  enter(options: vm.EnterOptions) {
-    this.append(new vm.EnterOpcode(options));
+  enter(enter: Label, exit: Label) {
+    this.append(new vm.EnterOpcode({ begin: this.labelFor(enter), end: this.labelFor(exit) }));
   }
 
   exit() {
     this.append(new vm.ExitOpcode());
-  }
-
-  label(options: vm.LabelOptions): vm.LabelOpcode {
-    return new vm.LabelOpcode(options);
   }
 
   evaluate(options: vm.EvaluateOptions) {
@@ -248,16 +274,16 @@ export class BasicOpcodeBuilder extends StatementCompilationBufferProxy {
     this.append(new vm.TestOpcode());
   }
 
-  jump(options: vm.JumpOptions) {
-    this.append(new vm.JumpOpcode(options));
+  jump(target: string) {
+    this.append(new vm.JumpOpcode({ target: this.labelFor(target) }));
   }
 
-  jumpIf(options: vm.JumpOptions) {
-    this.append(new vm.JumpIfOpcode(options));
+  jumpIf(target: string) {
+    this.append(new vm.JumpIfOpcode({ target: this.labelFor(target) }));
   }
 
-  jumpUnless(options: vm.JumpOptions) {
-    this.append(new vm.JumpUnlessOpcode(options));
+  jumpUnless(target: string) {
+    this.append(new vm.JumpUnlessOpcode({ target: this.labelFor(target) }));
   }
 }
 

@@ -73,46 +73,42 @@ export default class EachSyntax extends StatementSyntax {
 
     let { args, templates } = this;
 
-    let BEGIN = dsl.label({ label: "BEGIN" });
-    let ITER = dsl.label({ label: "ITER" });
-    let BEGIN2 = dsl.label({ label: "BEGIN2" });
-    let END2 = dsl.label({ label: "END2" });
-    let BREAK = dsl.label({ label: "BREAK" });
-    let ELSE = dsl.label({ label: "ELSE" });
-    let END = dsl.label({ label: "END" });
+    dsl.startLabels();
 
-    dsl.enter({ begin: BEGIN, end: END });
-    dsl.append(BEGIN);
+    dsl.enter('BEGIN', 'END');
+    dsl.label('BEGIN');
     dsl.putArgs({ args });
     dsl.putIterator();
 
     if (templates.inverse) {
-      dsl.jumpUnless({ target: ELSE });
+      dsl.jumpUnless('ELSE');
     } else {
-      dsl.jumpUnless({ target: END });
+      dsl.jumpUnless('END');
     }
 
-    dsl.enterList({ start: BEGIN2, end: END2 });
-    dsl.append(ITER);
-    dsl.nextIter({ end: BREAK });
-    dsl.enterWithKey({ start: BEGIN2, end: END2 });
-    dsl.append(BEGIN2);
+    dsl.enterList('BEGIN2', 'END2');
+    dsl.label('ITER');
+    dsl.nextIter('BREAK');
+    dsl.enterWithKey('BEGIN2', 'END2');
+    dsl.label('BEGIN2');
     dsl.pushChildScope();
     dsl.evaluate({ debug: "default", block: this.templates.default });
     dsl.popScope();
-    dsl.append(END2);
+    dsl.label('END2');
     dsl.exit()
-    dsl.jump({ target: ITER });
-    dsl.append(BREAK);
+    dsl.jump('ITER');
+    dsl.label('BREAK');
     dsl.exitList();
-    dsl.jump({ target: END });
+    dsl.jump('END');
 
     if (templates.inverse) {
-      dsl.append(ELSE);
+      dsl.label('ELSE');
       dsl.evaluate({ debug: "inverse", block: this.templates.inverse });
     }
 
-    dsl.append(END);
+    dsl.label('END');
     dsl.exit();
+
+    dsl.stopLabels();
   }
 }

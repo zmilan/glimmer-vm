@@ -378,18 +378,19 @@ class ComponentBuilder {
   dynamic({ definition, args, shadow, templates }: DynamicComponentOptions) {
     let { dsl, env } = this;
 
-    let BEGIN = dsl.label({ label: "BEGIN" });
-    let END = dsl.label({ label: "END" });
+    dsl.startLabels();
 
-    dsl.enter({ begin: BEGIN, end: END });
-    dsl.append(BEGIN);
+    dsl.enter('BEGIN', 'END');
+    dsl.label('BEGIN');
     dsl.putArgs({ args: definition.args });
     dsl.putComponentDefinition(definition)
     dsl.putArgs({ args: args });
     dsl.openDynamicComponent({ shadow, templates });
     dsl.closeComponent();
-    dsl.append(END);
+    dsl.label('END');
     dsl.exit();
+
+    dsl.stopLabels();
   }
 }
 
