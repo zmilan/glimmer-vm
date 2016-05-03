@@ -4,8 +4,5 @@ export {
 } from "./lib/compiler";
 
 export {
-  default as TemplateCompiler,
-  CompileOptions
+  default as TemplateCompiler
 } from './lib/template-compiler';
-
-export { default as TemplateVisitor } from './lib/template-visitor';

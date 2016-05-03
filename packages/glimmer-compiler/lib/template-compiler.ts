@@ -1,38 +1,28 @@
-import TemplateVisitor from "./template-visitor";
 import JavaScriptCompiler from "./javascript-compiler";
-import { FIXME, getAttrNamespace } from "glimmer-util";
-import { isHelper, isSelfGet } from "glimmer-syntax";
+import { TemplateMeta } from "glimmer-wire-format";
+import { getAttrNamespace } from "glimmer-util";
+import { isHelper, AST } from "glimmer-syntax";
 import { assert } from "glimmer-util";
 
-export interface CompileOptions {
-  buildMeta?: FIXME<Object, 'currently does nothing'>;
-  moduleName?: string;
-}
-
-function isTrustedValue(value) {
-  return value.escaped !== undefined && !value.escaped;
+interface TemplateCompilerOptions {
+  meta: TemplateMeta;
 }
 
 export default class TemplateCompiler {
-  static compile(options: CompileOptions, ast) {
-    let templateVisitor = new TemplateVisitor();
-    templateVisitor.visit(ast);
+  static compile(options: TemplateCompilerOptions, ast: AST.Program) {
 
     let compiler = new TemplateCompiler(options);
-    let opcodes = compiler.process(templateVisitor.actions);
-    let meta = {
-      moduleName: options.moduleName
-    };
-    return JavaScriptCompiler.process(opcodes, meta);
+    let opcodes = compiler.process(ast);
+    return JavaScriptCompiler.process(opcodes, options.meta);
   }
 
-  private options: CompileOptions;
+  private options: Object;
   private templateId = 0;
   private templateIds: number[] = [];
   private opcodes: any[] = [];
   private includeMeta = false;
 
-  constructor(options: CompileOptions = {}) {
+  constructor(options: Object = {}) {
     this.options = options;
   }
 
@@ -79,7 +69,6 @@ export default class TemplateCompiler {
     for (let i = 0; i < action.modifiers.length; i++) {
       this.modifier([action.modifiers[i]]);
     }
-    this.opcode('flushElement', null);
   }
 
   closeElement() {
@@ -93,27 +82,13 @@ export default class TemplateCompiler {
 
     let isStatic = this.prepareAttributeValue(value);
 
-    if (name.charAt(0) === '@') {
-      // Arguments
-      if (isStatic) {
-        this.opcode('staticArg', action, name);
-      } else if (action.value.type === 'MustacheStatement') {
-        this.opcode('dynamicArg', action, name);
-      } else {
-        this.opcode('dynamicArg', action, name);
-      }
+    if (isStatic) {
+      this.opcode('staticAttr', action, name, namespace);
+    } else if (action.value.type === 'MustacheStatement') {
+      assert(name.indexOf(':') === -1, `Namespaced attributes cannot be set as props. Perhaps you meant ${name}="{{title}}"`);
+      this.opcode('dynamicProp', action, name);
     } else {
-      let isTrusting = isTrustedValue(value);
-
-      if (isStatic) {
-        this.opcode('staticAttr', action, name, namespace);
-      } else if (isTrusting) {
-        this.opcode('trustingAttr', action, name, namespace);
-      } else if (action.value.type === 'MustacheStatement') {
-        this.opcode('dynamicAttr', action, name);
-      } else {
-        this.opcode('dynamicAttr', action, name, namespace);
-      }
+      this.opcode('dynamicAttr', action, name, namespace);
     }
   }
 
@@ -143,9 +118,9 @@ export default class TemplateCompiler {
 
   /// Internal actions, not found in the original processed actions
 
-  arg([path]) {
+  attr([path]) {
     let { parts } = path;
-    this.opcode('arg', path, parts);
+    this.opcode('attr', path, parts);
   }
 
   mustacheExpression(expr) {
@@ -153,13 +128,11 @@ export default class TemplateCompiler {
       this.builtInHelper(expr);
     } else if (isLiteral(expr)) {
       this.opcode('literal', expr, expr.path.value);
-    } else if (isArg(expr)) {
-      this.arg([expr.path]);
+    } else if (isAttr(expr)) {
+      this.attr([expr.path]);
     } else if (isHelper(expr)) {
       this.prepareHelper(expr);
       this.opcode('helper', expr, expr.path.parts);
-    } else if (isSelfGet(expr)) {
-      this.opcode('selfGet', expr, expr.path.parts);
     } else {
       this.opcode('unknown', expr, expr.path.parts);
     }
@@ -203,7 +176,7 @@ export default class TemplateCompiler {
 
   PathExpression(expr) {
     if (expr.data) {
-      this.arg([expr]);
+      this.attr([expr]);
     } else {
       this.opcode('get', expr, expr.parts);
     }
@@ -332,7 +305,7 @@ function isYield({ path }) {
   return path.original === 'yield';
 }
 
-function isArg({ path }) {
+function isAttr({ path }) {
   return path.data;
 }
 

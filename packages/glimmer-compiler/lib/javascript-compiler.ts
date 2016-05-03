@@ -1,14 +1,13 @@
 import { assert } from "glimmer-util";
-import { Stack, DictSet } from "glimmer-util";
+import { Stack, DictSet, InternedString, dict } from "glimmer-util";
 
 import {
-  BlockMeta,
   SerializedBlock,
   SerializedTemplate,
   Core,
   Statement,
   Expression,
-  Expressions
+  TemplateMeta
 } from 'glimmer-wire-format';
 
 type str = string;
@@ -24,7 +23,7 @@ export class Block {
   toJSON(): SerializedBlock {
     return {
       statements: this.statements,
-      locals: this.positionals
+      locals: this.positionals as InternedString[]
     };
   }
 
@@ -34,21 +33,18 @@ export class Block {
 }
 
 export class Template extends Block {
-  public meta: BlockMeta = null;
-
   public yields = new DictSet();
   public named = new DictSet();
   public blocks: Block[] = [];
 
-  constructor(meta) {
+  constructor(private meta: TemplateMeta) {
     super();
-    this.meta = meta;
   }
 
   toJSON(): SerializedTemplate {
     return {
       statements: this.statements,
-      locals: this.positionals,
+      locals: this.positionals as InternedString[],
       named: this.named.toArray(),
       yields: this.yields.toArray(),
       blocks: this.blocks.map(b => b.toJSON()),
@@ -58,19 +54,16 @@ export class Template extends Block {
 }
 
 export default class JavaScriptCompiler {
-  static process(opcodes, meta): Template {
-    let compiler = new JavaScriptCompiler(opcodes, meta);
+  static process(opcodes: any[], meta: TemplateMeta): Template {
+    let template = new Template(meta);
+    let compiler = new JavaScriptCompiler(opcodes, template);
     return compiler.process();
   }
 
-  private template: Template = null;
   private blocks = new Stack<Block>();
-  private opcodes: any[];
   private values: StackValue[] = [];
 
-  constructor(opcodes, meta) {
-    this.opcodes = opcodes;
-    this.template = new Template(meta);
+  constructor(public opcodes: any[], public template: Template) {
   }
 
   process() {
@@ -132,40 +125,26 @@ export default class JavaScriptCompiler {
   }
 
   openElement(tag: str, blockParams: string[]) {
-    this.push(['open-element', tag, blockParams]);
-  }
-
-  flushElement() {
-    this.push(['flush-element']);
+    this.push(['openElement', tag, blockParams]);
   }
 
   closeElement() {
-    this.push(['close-element']);
+    this.push(['closeElement']);
   }
 
   staticAttr(name: str, namespace: str) {
     let value = this.popValue<Expression>();
-    this.push(['static-attr', name, value, namespace]);
+    this.push(['staticAttr', name, value, namespace]);
   }
 
-  dynamicAttr(name: str, namespace: str) {
+  dynamicAttr(name: string, namespace: string) {
     let value = this.popValue<Expression>();
-    this.push(['dynamic-attr', name, value, namespace]);
+    this.push(['dynamicAttr', name, value, namespace]);
   }
 
-  trustingAttr(name: str, namespace: str) {
+  dynamicProp(name: string) {
     let value = this.popValue<Expression>();
-    this.push(['trusting-attr', name, value, namespace]);
-  }
-
-  staticArg(name: str) {
-    let value = this.popValue<Expression>();
-    this.push(['static-arg', name.slice(1), value]);
-  }
-
-  dynamicArg(name: str) {
-    let value = this.popValue<Expression>();
-    this.push(['dynamic-arg', name.slice(1), value]);
+    this.push(['dynamicProp', name, value]);
   }
 
   yield(to: string) {
@@ -175,51 +154,43 @@ export default class JavaScriptCompiler {
   }
 
   hasBlock(name: string) {
-    this.pushValue<Expressions.HasBlock>(['has-block', name]);
+    this.pushValue(['hasBlock', name]);
     this.template.yields.add(name);
   }
 
   hasBlockParams(name: string) {
-    this.pushValue<Expressions.HasBlockParams>(['has-block-params', name]);
+    this.pushValue(['hasBlockParams', name]);
     this.template.yields.add(name);
   }
 
   /// Expressions
 
-  literal(value: Expressions.Value | undefined) {
-    if (value === undefined) {
-      this.pushValue<Expressions.Undefined>(['undefined']);
-    } else {
-      this.pushValue<Expressions.Value>(value);
-    }
+  literal(value: any) {
+    this.pushValue(value);
   }
 
   unknown(path: string[]) {
-    this.pushValue<Expressions.Unknown>(['unknown', path]);
+    this.pushValue(['unknown', path]);
   }
 
-  arg(path: string[]) {
+  attr(path: string[]) {
     this.template.named.add(path[0]);
-    this.pushValue<Expressions.Arg>(['arg', path]);
-  }
-
-  selfGet(path: string[]) {
-    this.pushValue<Expressions.SelfGet>(['self-get', path]);
+    this.pushValue(['attr', path]);
   }
 
   get(path: string[]) {
-    this.pushValue<Expressions.Get>(['get', path]);
+    this.pushValue(['get', path]);
   }
 
   concat() {
-    this.pushValue<Expressions.Concat>(['concat', this.popValue<Params>()]);
+    this.pushValue(['concat', this.popValue<Params>()]);
   }
 
   helper(path: string[]) {
     let params = this.popValue<Params>();
     let hash = this.popValue<Hash>();
 
-    this.pushValue<Expressions.Helper>(['helper', path, params, hash]);
+    this.pushValue(['helper', path, params, hash]);
   }
 
   /// Stack Management Opcodes
@@ -231,21 +202,19 @@ export default class JavaScriptCompiler {
       values.push(this.popValue());
     }
 
-    this.pushValue<Params>(values);
+    this.pushValue(values);
   }
 
   prepareObject(size: number) {
     assert(this.values.length >= size, `Expected ${size} values on the stack, found ${this.values.length}`);
 
-    let keys: string[] = new Array(size);
-    let values: Expression[] = new Array(size);
+    let object = dict<Expression>();
 
     for (let i = 0; i < size; i++) {
-      keys[i] = this.popValue<str>();
-      values[i] = this.popValue<Expression>();
+      object[this.popValue<str>()] = this.popValue<Expression>();
     }
 
-    this.pushValue<Hash>([keys, values]);
+    this.pushValue(object);
   }
 
   /// Utilities
@@ -258,7 +227,7 @@ export default class JavaScriptCompiler {
     this.blocks.current.push(args);
   }
 
-  pushValue<S extends Expression | Params | Hash>(val: S) {
+  pushValue(val: Expression | Params | Hash) {
     this.values.push(val);
   }
 
