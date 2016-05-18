@@ -1,4 +1,8 @@
-export type Opaque = {} | void;
+export interface Constructor<T> {
+  new(...args: any[]): T;
+}
+
+export type Opaque = Maybe<{} | void>;
 
 export function opaque(value: Opaque): Opaque {
   return value;

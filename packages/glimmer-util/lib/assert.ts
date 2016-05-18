@@ -1,7 +1,3 @@
-// import Logger from './logger';
-
-// let alreadyWarned = false;
-
 export function debugAssert(test, msg) {
   // if (!alreadyWarned) {
   //   alreadyWarned = true;
