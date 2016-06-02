@@ -10,6 +10,7 @@ import { CompiledArgs, EvaluatedArgs } from '../compiled/expressions/args';
 import { Opcode, OpSeq, UpdatingOpcode } from '../opcodes';
 import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compiled/opcodes/vm';
 import { Range } from '../utils';
+import { AppendVMDebugger as Debugger } from 'glimmer-debug';
 
 import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode } from './update';
 import RenderResult from './render-result';
@@ -27,6 +28,7 @@ interface VMConstructorOptions {
   scope: Scope;
   dynamicScope: DynamicScope;
   elementStack: ElementStack;
+  debug?: Debugger;
 }
 
 interface Registers {
@@ -64,24 +66,29 @@ type OpList = Range<Opcode>;
 
 export default class VM implements PublicVM {
   public env: Environment;
+  private debug: Debugger;
   private dynamicScopeStack = new Stack<DynamicScope>();
   private scopeStack = new Stack<Scope>();
   private elementStack: ElementStack;
   public updatingOpcodeStack = new Stack<LinkedList<UpdatingOpcode>>();
   public cacheGroups = new Stack<UpdatingOpcode>();
   public listBlockStack = new Stack<ListBlockOpcode>();
-  public frame = new FrameStack();
+  public frame: FrameStack;
 
   static initial(env: Environment, { elementStack, self, dynamicScope, size }: VMInitialOptions) {
     let scope = Scope.root(self, size);
     return new VM({ env, scope, dynamicScope, elementStack });
   }
 
-  constructor({ env, scope, dynamicScope, elementStack }: VMConstructorOptions) {
+  constructor({ env, scope, dynamicScope, elementStack, debug }: VMConstructorOptions) {
     this.env = env;
     this.elementStack = elementStack;
     this.scopeStack.push(scope);
     this.dynamicScopeStack.push(dynamicScope);
+
+    // TODO: Move debugging into a static `create` and construct an appropriate subclass
+    this.debug = debug || new Debugger();// null;
+    this.frame = new FrameStack(this.debug);
   }
 
   capture(): VMState {
@@ -206,15 +213,6 @@ export default class VM implements PublicVM {
     if (callerScope) this.frame.setCallerScope(callerScope);
   }
 
-  popFrame() {
-    let { frame } = this;
-
-    frame.pop();
-    let current = frame.getCurrent();
-
-    if (current === null) return;
-  }
-
   pushChildScope() {
     this.scopeStack.push(this.scopeStack.current.child());
   }
@@ -280,6 +278,7 @@ export default class VM implements PublicVM {
         LOGGER.debug(`[VM] OP ${opcode.type}`);
         LOGGER.trace(opcode);
         opcode.evaluate(this);
+        this.debug.didExecute({ opcode });
       }
     }
 

@@ -83,7 +83,8 @@ module.exports = function() {
       'glimmer-object-reference/**/*.js',
       'glimmer-reference/**/*.js',
       'glimmer-util/**/*.js',
-      'glimmer-wire-format/**/*.js'
+      'glimmer-wire-format/**/*.js',
+      'glimmer-debug/**/*.js'
     ]
   });
 

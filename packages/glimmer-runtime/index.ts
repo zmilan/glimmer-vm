@@ -16,6 +16,10 @@ export { default as SymbolTable } from './lib/symbol-table';
 export { ConditionalReference, NULL_REFERENCE, UNDEFINED_REFERENCE } from './lib/references';
 
 export {
+  Bounds
+} from './lib/bounds';
+
+export {
   Templates,
   Append,
   Unknown,

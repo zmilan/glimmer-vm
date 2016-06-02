@@ -1,5 +1,6 @@
 import { Scope } from '../environment';
 import { InternedString } from 'glimmer-util';
+import { AppendVMDebugger as Debugger } from 'glimmer-debug';
 import { Reference, PathReference, ReferenceIterator } from 'glimmer-reference';
 import { InlineBlock } from '../compiled/blocks';
 import { EvaluatedArgs } from '../compiled/expressions/args';
@@ -32,6 +33,8 @@ export class FrameStack {
   private frames: Frame[] = [];
   private frame: number = undefined;
 
+  constructor(private debug: Debugger) {}
+
   push(ops: OpSeq) {
     let frame = (this.frame === undefined) ? (this.frame = 0) : ++this.frame;
 
@@ -40,12 +43,16 @@ export class FrameStack {
     }
 
     this.frames[frame] = new Frame(ops);
+
+    this.debug.didPushFrame();
   }
 
   pop() {
     let { frames, frame } = this;
     frames[frame] = null;
     this.frame = frame === 0 ? undefined : frame - 1;
+
+    this.debug.didPopFrame();
   }
 
   getOps(): OpSeq {
