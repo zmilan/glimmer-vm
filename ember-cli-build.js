@@ -87,6 +87,7 @@ module.exports = function(_options) {
    * ES6 Build
    */
   var tokenizerPath = path.join(require.resolve('simple-html-tokenizer'), '..', '..', 'src');
+  // rebase: var tokenizerPath = path.join(require.resolve('simple-html-tokenizer'), '..', '..', '..', 'src');
   var tokenizer = mv(tokenizerPath, 'simple-html-tokenizer');
 
   var tsTree = find(merge([packages, tokenizer]), {
