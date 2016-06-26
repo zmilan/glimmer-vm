@@ -16,6 +16,7 @@ import {
   TestEnvironment,
   TestDynamicScope,
   equalsElement,
+  equalHTML,
   inspectHooks,
   regex,
   classes
@@ -2775,6 +2776,8 @@ QUnit.test('components inside the root are destroyed when the render result is d
 
   assert.strictEqual(glimmerDestroyed, true, 'the glimmer component should be destroyed');
   assert.strictEqual(curlyDestroyed, true, 'the curly component should be destroyed');
+
+  equalHTML(view.element, '');
 });
 
 QUnit.test('tagless components render properly', function(assert) {

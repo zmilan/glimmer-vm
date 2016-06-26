@@ -326,12 +326,6 @@ class BlockTracker implements Tracker {
         destroyables[i].destroy();
       }
     }
-
-    clear(this);
-
-    this.destroyables = null;
-    this.first = null;
-    this.last = null;
   }
 
   parentElement() {

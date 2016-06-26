@@ -54,6 +54,9 @@ export default class RenderResult implements Bounds, Destroyable, ExceptionHandl
   }
 
   destroy() {
-    this.bounds.destroy();
+    let { env } = this;
+
+    this.bounds.reset(env);
+    env.commit();
   }
 }
