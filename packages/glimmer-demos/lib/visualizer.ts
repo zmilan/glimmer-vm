@@ -319,7 +319,9 @@ function renderUI() {
 
   rerenderUI = () => {
     self.update(ui);
+    env.begin();
     res.rerender();
+    env.commit();
   };
 }
 
@@ -421,7 +423,9 @@ function renderContent() {
 
   _updateContent = () => {
     self.update(JSON.parse($data.value));
+    env.begin();
     res.rerender();
+    env.commit();
     ui.updatingOpcodes = processUpdatingOpcodes(res['updating']);
     ui.html = div.innerHTML;
     rerenderUI();
