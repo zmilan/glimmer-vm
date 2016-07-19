@@ -9,3 +9,13 @@ export {
   HbsToLoc,
   locFromHBS
 } from './builders';
+
+//
+export interface Child {
+
+}
+
+// Program, Element
+export interface Parent {
+  children: Child[];
+}

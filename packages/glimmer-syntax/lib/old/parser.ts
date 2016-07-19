@@ -7,7 +7,7 @@ import * as HBS from "./parser/handlebars-ast"
 import EventedTokenizer from "simple-html-tokenizer/evented-tokenizer";
 import EntityParser from "simple-html-tokenizer/entity-parser";
 import namedCharRefs from "simple-html-tokenizer/html5-named-char-refs";
-import { HandlebarsNodeVisitor, PrintableMustache } from "./parser/handlebars-node-visitors";
+import HandlebarsNodeVisitor, { PrintableMustache } from "./parser/mixed";
 import { TokenizerEventHandlers, ElementBuilder } from "./parser/tokenizer-event-handlers";
 
 export function preprocess(html, options?): Node.Program {

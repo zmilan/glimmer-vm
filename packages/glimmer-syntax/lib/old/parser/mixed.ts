@@ -1,10 +1,11 @@
 import { Stack, unwrap } from "glimmer-util";
 import { fromHBS as hbs, builders as b, Node as INode } from "../builders";
 import * as Node from "../builders";
-import HTMLParser from './html-parser';
-import { AttributeBuilder, ElementBuilder, OpenTagBuilder, CloseTagBuilder } from "./tokens";
+import HTMLParser, { pos } from './html-parser';
+import { AttributeBuilder, OpenedElementBuilder, OpenTagBuilder, CloseTagBuilder } from "./tokens";
 import * as AST from "./handlebars-ast";
 import { SYNTHESIZED_LOC, formatLocation, locFromHBS } from '../ast';
+import { Tokenizer } from 'simple-html-tokenizer';
 
 class Fragment implements Node.HasChildren {
   constructor(private children: Node.StatementNode[] = []) {}
@@ -16,40 +17,53 @@ class Fragment implements Node.HasChildren {
 
 export type PrintableMustache = Node.CallNode | AST.Call | Node.Mustache | Node.Block;
 
-export abstract class HandlebarsNodeVisitor extends HTMLParser {
-  protected abstract acceptNode(node: AST.Node): void;
-  protected abstract acceptParam<T extends AST.Param | AST.Hash>(node: T): T;
-  protected abstract sourceForMustache(mustache: PrintableMustache): string;
+export interface HBSDelegate {
+  state: string;
+  html(content: string);
+  spanText(loc: AST.Location): string;
+  content(content: AST.Content);
+  mustache(mustache: Node.Mustache);
+}
 
-  protected parentStack = new Stack<Node.HasChildren>();
+export class MixedParser {
+  // protected abstract acceptNode(node: AST.Node): void;
+  // protected abstract acceptParam<T extends AST.Param | AST.Hash>(node: T): T;
+  // protected abstract sourceForMustache(mustache: PrintableMustache): string;
 
-  protected currentParent(): Node.HasChildren {
-    return unwrap(this.parentStack.current);
-  }
+  constructor(private delegate: HBSDelegate) {}
 
   Program(rawProgram: AST.Program): Node.Program {
-    if (rawProgram.body.length === 0) { return hbs.program(rawProgram); }
-
-    let program: AST.Program = Object.assign({}, rawProgram, { body: [] });
+    let program = Object.assign({}, rawProgram, { body: [] });
     let node = hbs.program(program);
 
-    this.parentStack.push(node);
-
-    let topNode = this.elementStack.current;
-
-    rawProgram.body.forEach(n => this.acceptNode(n));
-
-    // Ensure that that the element stack is balanced properly.
-    let newTopNode = this.elementStack.current;
-    if (topNode !== newTopNode) {
-      let element = unwrap(newTopNode as ElementBuilder).toElementNode(this.tokenizer);
-      throw new Error(`Unclosed element '${element.tag}' (${formatLocation(element._loc)}).`);
-    }
-
-    this.parentStack.pop();
-
+    rawProgram.body.forEach(n => this[n.type](n));
     return node;
   }
+
+  // Program(rawProgram: AST.Program): Node.Program {
+  //   if (rawProgram.body.length === 0) { return hbs.program(rawProgram); }
+
+  //   let program: AST.Program = Object.assign({}, rawProgram, { body: [] });
+  //   let node = hbs.program(program);
+
+  //   this.parentStack.push(node);
+
+  //   let topNode = this.elementStack.current;
+
+  //   rawProgram.body.forEach(n => this.acceptNode(n));
+
+  //   // Ensure that that the element stack is balanced properly.
+  //   let newTopNode = this.elementStack.current;
+  //   if (topNode !== newTopNode) {
+  //     let tag = newTopNode.unwrapAs(OpenedElementBuilder).openTag.name;
+  //     let loc = newTopNode.unwrapAs(OpenedElementBuilder).openTag.loc;
+  //     throw new Error(`Unclosed element '${tag}' (${formatLocation(loc)}).`);
+  //   }
+
+  //   this.parentStack.pop();
+
+  //   return node;
+  // }
 
   BlockStatement(block: AST.Block) {
     if (this.tokenizer.state === 'comment') {
@@ -73,67 +87,80 @@ export abstract class HandlebarsNodeVisitor extends HTMLParser {
   }
 
   MustacheStatement(rawMustache: AST.Mustache): Node.Mustache | null {
-    let tokenizer = this.tokenizer;
+    if (this.delegate.state === 'in-comment') {
+      let loc = rawMustache.loc;
+      let body = this.delegate.spanText(loc);
 
-    if (tokenizer.state === 'comment') {
-      this.appendToCommentData('{{' + this.sourceForMustache(rawMustache) + '}}');
+      this.delegate.content({
+        type: 'ContentStatement',
+        loc,
+        original: body,
+        value: body,
+        leftStripped: false,
+        rightStripped: false
+      })
+
       return null;
     }
 
-    let mustache = hbs.mustache(this.acceptCall(rawMustache));
+    let mustache = hbs.mustache(this.acceptCall(rawMustache)).location(rawMustache.loc as AST.Location);
+    this.delegate.mustache(mustache);
 
-    switch (tokenizer.state) {
-      // Tag helpers
-      case "tagName":
-        unwrap(this.currentNodeAs(StartTagBuilder)).modifier(mustache, this.tokenizer);
-        tokenizer.state = "beforeAttributeName";
-        break;
-      case "beforeAttributeName":
-        unwrap(this.currentNodeAs(StartTagBuilder)).modifier(mustache, this.tokenizer);
-        break;
-      case "attributeName":
-      case "afterAttributeName":
-        this.beginAttributeValue(false);
-        this.finishAttributeValue();
-        unwrap(this.currentNodeAs(StartTagBuilder)).modifier(mustache, this.tokenizer);
-        tokenizer.state = "beforeAttributeName";
-        break;
-      case "afterAttributeValueQuoted":
-        unwrap(this.currentNodeAs(StartTagBuilder)).modifier(mustache, this.tokenizer);
-        tokenizer.state = "beforeAttributeName";
-        break;
+    state.appendMustache(parser, pos(mustache), mustache);
 
-      // Attribute values
-      case "beforeAttributeValue":
-        tokenizer.state = 'attributeValueUnquoted';
-      /* falls through */
-      case "attributeValueDoubleQuoted":
-      case "attributeValueSingleQuoted":
-      case "attributeValueUnquoted":
-        unwrap(this.currentNodeAs(StartTagBuilder)).appendToAttributeValue(mustache, this.tokenizer);
-        break;
+    // switch (tokenizer.state) {
+    //   // Tag helpers
+    //   case "tagName":
+    //     unwrap(this.currentNodeAs(StartTagBuilder)).modifier(mustache, this.tokenizer);
+    //     tokenizer.state = "beforeAttributeName";
+    //     break;
+    //   case "beforeAttributeName":
+    //     unwrap(this.currentNodeAs(StartTagBuilder)).modifier(mustache, this.tokenizer);
+    //     break;
+    //   case "attributeName":
+    //   case "afterAttributeName":
+    //     this.beginAttributeValue(false);
+    //     this.finishAttributeValue();
+    //     unwrap(this.currentNodeAs(StartTagBuilder)).modifier(mustache, this.tokenizer);
+    //     tokenizer.state = "beforeAttributeName";
+    //     break;
+    //   case "afterAttributeValueQuoted":
+    //     unwrap(this.currentNodeAs(StartTagBuilder)).modifier(mustache, this.tokenizer);
+    //     tokenizer.state = "beforeAttributeName";
+    //     break;
 
-      // TODO: Only append child when the tokenizer state makes
-      // sense to do so, otherwise throw an error.
-      default:
-        this.appendChild(mustache);
-    }
+    //   // Attribute values
+    //   case "beforeAttributeValue":
+    //     tokenizer.state = 'attributeValueUnquoted';
+    //   /* falls through */
+    //   case "attributeValueDoubleQuoted":
+    //   case "attributeValueSingleQuoted":
+    //   case "attributeValueUnquoted":
+    //     unwrap(this.currentNodeAs(StartTagBuilder)).appendToAttributeValue(mustache, this.tokenizer);
+    //     break;
+
+    //   // TODO: Only append child when the tokenizer state makes
+    //   // sense to do so, otherwise throw an error.
+    //   default:
+    //     this.appendChild(mustache);
+    // }
 
     return mustache;
   }
 
   ContentStatement(content: AST.Content) {
-    let changeLines = 0;
+    // this.delegate.html(content.value);
+    // let changeLines = 0;
 
-    if (content.rightStripped) {
-      changeLines = leadingNewlineDifference(content.original, content.value);
-    }
+    // if (content.rightStripped) {
+    //   changeLines = leadingNewlineDifference(content.original, content.value);
+    // }
 
-    this.tokenizer.line = content.loc.start.line + changeLines;
-    this.tokenizer.column = changeLines ? 0 : content.loc.start.column;
+    // this.tokenizer.line = content.loc.start.line + changeLines;
+    // this.tokenizer.column = changeLines ? 0 : content.loc.start.column;
 
-    this.tokenizer.tokenizePart(content.value);
-    this.tokenizer.flushData();
+    // this.tokenizer.tokenizePart(content.value);
+    // this.tokenizer.flushData();
   }
 
   CommentStatement(comment: AST.Comment): Node.SourceComment {
@@ -234,3 +261,4 @@ function leadingNewlineDifference(original: string, value: string) {
   return lines.length - 1;
 }
 
+export default MixedParser;

@@ -2,11 +2,7 @@ import { Position, Delegate, Char } from 'simple-html-tokenizer';
 import { TokenizerDelegate } from './tokenizer-delegate';
 import { Option, unwrap } from 'glimmer-util';
 import { HTMLNS, ElementType, TreeElement, TreeToken } from './types';
-
-export interface PhysicalLocation {
-  start: Position;
-  end: Position;
-}
+import { Location as PhysicalLocation } from '../parser/handlebars-ast';
 
 export const COLLAPSED: Location = "COLLAPSED [d2a7ffd1-5023-4eeb-935b-ae95f732d836]";
 
@@ -23,73 +19,6 @@ export function locToJSON(l: Location): SerializedLocation {
   } else {
     let { start, end } = l as PhysicalLocation;
     return { start: { line: start.line, column: start.column }, end: { line: end.line, column: end.column } };
-  }
-}
-
-interface Constructor<T> {
-  new(...args: any[]): T;
-}
-
-export class TokenBuilder {
-  as<T extends TokenBuilder>(type: Constructor<T>): Option<T> {
-    if (this instanceof type) {
-      return this as any as T;
-    } else {
-      return null;
-    }
-  }
-
-  unwrapAs<T extends TokenBuilder>(type: Constructor<T>): T {
-    return unwrap(this.as<T>(type));
-  }
-}
-
-export class LocatableTokenBuilder extends TokenBuilder {
-  constructor(public loc: LocationBuilder) {
-    super();
-  }
-}
-
-export class SourceSpan {
-  constructor(public start: Position, public end: Position) {}
-}
-
-export class LocationBuilder {
-  constructor(private start: Position) {}
-
-  fork(): LocationBuilder {
-    return new LocationBuilder({ line: this.start.line, column: this.start.column });
-  }
-
-  finalize(end: Position): PhysicalLocation {
-    return new SourceSpan(this.start, end);
-  }
-}
-
-export function loc(pos: Position) {
-  return new LocationBuilder(pos);
-}
-
-export const INITIAL = new TokenBuilder();
-
-export class CharsTokenBuilder<T extends CharsToken> extends LocatableTokenBuilder {
-  static start(pos: Position) {
-    return new this(new LocationBuilder(pos));
-  }
-
-  protected chars: string = '';
-  protected TokenType: { new(loc: Location, chars?: string): T };
-
-  appendToData(pos: Position, chars: Char) {
-    if (typeof chars === 'string') {
-      this.chars += chars;
-    } else {
-      this.chars += chars.chars;
-    }
-  }
-
-  finalize(end: Position): T {
-    return new this.TokenType(this.loc.finalize(end), this.chars);
   }
 }
 
@@ -125,6 +54,10 @@ export class DataToken extends CharsToken {
       chars: this.chars
     }
   }
+
+  toHTML(): string {
+    return this.chars;
+  }
 }
 
 export class CommentTokenBuilder extends CharsTokenBuilder<CommentToken> {
@@ -143,6 +76,10 @@ export class CommentToken extends CharsToken {
       loc: locToJSON(this.loc),
       chars: this.chars
     }
+  }
+
+  toHTML(): string {
+    return `<!--${this.chars}-->`;
   }
 }
 
@@ -197,6 +134,17 @@ export class ElementToken extends LocatableToken {
       closeTag: this.closeTag.toJSON(),
       children: children && children.map(c => c.toJSON())
     };
+  }
+
+  toHTML(): string {
+    let children = this.children;
+    let out = this.openTag.toHTML(children === SELF_CLOSING);
+    if (children !== SELF_CLOSING) {
+      let c = children as TreeToken[];
+      out += c.map(child => child.toHTML()).join('');
+      out += this.closeTag.toHTML();
+    }
+    return out;
   }
 }
 
@@ -262,6 +210,11 @@ export class OpenTagToken extends LocatableToken implements ElementType {
       attributes: this.attributes.map(a => a.toJSON())
     }
   }
+
+  toHTML(selfClosing: boolean): string {
+    let attrs = this.attributes.map(a => ` ${a.toHTML()}`).join('');
+    return `<${this.tagName}${attrs}${selfClosing ? ' /' : ''}>`;
+  }
 }
 
 export class CloseTagBuilder extends LocatableTokenBuilder implements ElementType {
@@ -311,6 +264,10 @@ export class CloseTagToken extends LocatableToken implements ElementType {
       }
     }
   }
+
+  toHTML(): string {
+    return `</${this.tagName.chars}>`;
+  }
 }
 
 export class TagNameTokenBuilder extends CharsTokenBuilder<TagNameToken> {
@@ -345,6 +302,10 @@ export class TagNameToken extends CharsToken implements ElementType {
       name: this.name,
       namespace: this.namespace === HTMLNS ? null : this.namespace
     }
+  }
+
+  toHTML(): string {
+    return this.chars;
   }
 }
 
@@ -385,6 +346,17 @@ export class Attribute extends LocatableToken {
       quote: this.quote
     }
   }
+
+  toHTML(): string {
+    let val = this.value.toHTML();
+
+    if (!val) {
+      return this.name.toHTML();
+    } else {
+      let quote = this.quote || '';
+      return `${this.name.toHTML()}=${quote}${this.value.toHTML()}${quote}`
+    }
+  }
 }
 
 export class AttributeNameTokenBuilder extends CharsTokenBuilder<AttributeNameToken> {
@@ -403,6 +375,10 @@ export class AttributeNameToken extends CharsToken {
       loc: locToJSON(this.loc),
       chars: this.chars
     }
+  }
+
+  toHTML(): string {
+    return this.chars;
   }
 }
 
@@ -443,6 +419,14 @@ export class AttributeValueToken extends LocatableToken {
       inner: this.inner && this.inner.toJSON()
     }
   }
+
+  toHTML(): string {
+    if (this.loc === COLLAPSED || this.inner === null) {
+      return '';
+    } else {
+      return this.inner.toHTML();
+    }
+  }
 }
 
 export class InnerAttributeValueTokenBuilder extends CharsTokenBuilder<InnerAttributeValueToken> {
@@ -471,5 +455,9 @@ export class InnerAttributeValueToken extends CharsToken {
       loc: locToJSON(this.loc),
       chars: this.chars
     }
+  }
+
+  toHTML(): string {
+    return this.chars;
   }
 }

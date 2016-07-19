@@ -1,5 +1,7 @@
 import * as HBS from './parser/handlebars-ast';
 import * as Node from './builders';
+import { COLLAPSED, Location as TokenLocation, PhysicalLocation } from './parser/tokens'
+import * as HTML from './parser/tokens';
 import { Opaque, Dict, Option, dict, unwrap } from 'glimmer-util';
 
 export interface Node {
@@ -24,7 +26,7 @@ export type Serializable = SerializableTo<JSON>;
 
 interface SerializableNode<T extends JSON> extends Node, SerializableTo<T> {}
 
-export interface LocatableNode extends Node{
+export interface LocatableNode extends Node {
   _loc: Location
 }
 
@@ -106,6 +108,7 @@ type SerializedStatement  =
 abstract class BuildableNode {
   public _loc: Location = SYNTHESIZED;
 
+  location(loc: HBS.Location): this;
   location(loc: Location): this;
   location(start: SourceLocation, end: SourceLocation): this;
   location(start: Position, end: Position): this;
@@ -117,8 +120,10 @@ abstract class BuildableNode {
       } else {
         this._loc = SourceLocation.build(start, end);
       }
-    } else {
+    } else if (start instanceof SourceLocation) {
       this._loc = start;
+    } else {
+      this._loc = locFromHBS(start as HBS.Location);
     }
 
     return this;
@@ -384,6 +389,10 @@ export class Text extends BuildableNode implements StatementNode {
 
   static build(chars: string): Text {
     return new Text(chars);
+  }
+
+  static fromParsedHTML(data: HTML.DataToken): Text {
+    return new Text(data.chars).location(data.loc);
   }
 
   public type = Statement.Text;
@@ -964,14 +973,17 @@ export function jsonLocation(location: Location): Option<SerializedLocation> {
   }
 }
 
-export function formatLocation(location: Location): string {
+export function formatLocation(location: Location | TokenLocation): string {
   if (location === SYNTHESIZED) {
     return "(synthesized syntax)";
-  } else if (location === UNNEEDED) {
+  } else if (location === UNNEEDED || location === COLLAPSED) {
     throw new Error("Don't try to print AST nodes that don't represent contiguous spans");
-  } else {
+  } else if (location.hasOwnProperty('source')) {
     let l = location as SourceLocation;
     return `${l.start.line}:${l.start.column} at ${l.source}`;
+  } else {
+    let l = location as PhysicalLocation;
+    return `${l.start.line}:${l.start.column}`;
   }
 }
 

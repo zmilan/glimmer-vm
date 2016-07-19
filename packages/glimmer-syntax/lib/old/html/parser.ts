@@ -29,8 +29,15 @@ import TreeBuilder from './html-parser';
 
 import { isVoidTag } from 'glimmer-util';
 
+import * as AST from '../builders';
+
 export abstract class ParserState {
   public name: string;
+
+
+  appendMustache(builder: TreeBuilder, pos: Position, dynamic: AST.Mustache) {
+    illegal(this.name, 'appendMustacheToData');
+  }
 
   beginData(builder: TreeBuilder, pos: Position): void {
     illegal(this.name, 'beginData');
@@ -161,7 +168,7 @@ export class InDataState extends ParserState {
 }
 
 export class InCommentState extends ParserState {
-  public name = 'in-data';
+  public name = 'in-comment';
 
   constructor(private ret: ParserState, private comment: CommentTokenBuilder) {
     super();
@@ -249,7 +256,6 @@ export class InElement extends ParentNodeState {
   static INSTANCE = new InElement();
 
   openEndTag(builder: TreeBuilder, pos: Position) {
-    debugger;
     builder.state = new OpenEndTagState(this, pos);
   }
 }
