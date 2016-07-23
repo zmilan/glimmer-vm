@@ -14,4 +14,4 @@ export interface SerializableTo<T extends JSON> {
 
 export type Serializable = SerializableTo<JSON>;
 
-interface SerializableNode<T extends JSON> extends Node, SerializableTo<T> {}
+export interface SerializableNode<T extends JSON> extends Node, SerializableTo<T> {}

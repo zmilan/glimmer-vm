@@ -55,7 +55,7 @@ export class Pair extends Locatable {
   }
 }
 
-export class Internal implements Node {
+export class InternalArgs implements Node {
   public type = InternalNode.Args;
 
   constructor(public params: JSONObject) {}
