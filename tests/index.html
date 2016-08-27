@@ -50,6 +50,8 @@
       testMatch = /(\-test|.tslint)$/;
     }
 
+    console.log(testMatch);
+
     Object.keys(requireModule.entries).forEach(function(entry) {
       if (entry.match(testMatch)) {
         requireModule(entry)

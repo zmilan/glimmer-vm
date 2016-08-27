@@ -1,4 +1,4 @@
-import { Dict } from 'glimmer-util';
+import { Dict, Option } from 'glimmer-util';
 
 type JsonValue =
     string
@@ -100,7 +100,7 @@ export namespace Statements {
   export type Append        = ['append', Expression, boolean];
   export type Comment       = ['comment', str];
   export type Modifier      = ['modifier', Path, Params, Hash];
-  export type Block         = ['block', Path, Params, Hash, TemplateReference, TemplateReference];
+  export type Block         = ['block', Path, Params, Hash, TemplateReference, Option<TemplateReference>];
   export type OpenElement   = ['open-element', str, str[]];
   export type FlushElement  = ['flush-element'];
   export type CloseElement  = ['close-element'];

@@ -8,7 +8,7 @@
     "**/.git": true,
     "**/.DS_Store": true,
     "node_modules": false,
-    "bower_components": true,
+    "bower_components": false,
     "dist": true,
     "tmp": true
   },
