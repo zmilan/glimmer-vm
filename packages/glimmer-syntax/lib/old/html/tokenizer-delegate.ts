@@ -94,6 +94,6 @@ export class TokenizerDelegate implements Delegate {
 
 export default TokenizerDelegate;
 
-function illegal(name: string, event: string) {
+export function illegal(name: string, event: string) {
   throw new Error(`${event} is illegal in ${name}`);
 }

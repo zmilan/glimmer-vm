@@ -1,4 +1,5 @@
 import { AST, parse } from 'glimmer-syntax';
+export { IRBuilder, build } from './support/builder';
 
 function normalize(program: AST.Program) {
   return {

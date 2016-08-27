@@ -76,7 +76,7 @@ export interface Program extends Node {
 export interface Call extends Node {
   path: Path;
   params: Param[];
-  hash: Hash;
+  hash?: Hash;
 }
 
 export interface OptionalCall extends Node {
@@ -89,7 +89,7 @@ export interface Mustache extends Call, Statement {
   type: 'MustacheStatement';
   path: Path;
   params: Param[];
-  hash: Hash;
+  hash?: Hash;
   escaped: boolean;
   strip: StripFlags;
 }
@@ -98,7 +98,7 @@ export interface Block extends Call, Statement {
   type: 'BlockStatement';
   path: Path;
   params: Param[];
-  hash: Hash;
+  hash?: Hash;
   program: Program;
   inverse: Option<Program>;
   chained: Option<boolean>;
@@ -111,7 +111,7 @@ export interface SubExpression extends Call, Expression {
   type: 'SubExpression';
   path: Path;
   params: Param[];
-  hash: Hash;
+  hash?: Hash;
 }
 
 export interface Path extends Expression {
