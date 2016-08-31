@@ -1,5 +1,5 @@
 import { IR } from 'glimmer-syntax';
-import { Dict, isVoidTag } from 'glimmer-util';
+import { Dict } from 'glimmer-util';
 
 type Option<T> = T | null;
 
@@ -34,8 +34,8 @@ export class IRBuilder {
     this.tokens.push(IR.BlockGroupEnd);
   }
 
-  append(expr: Exprs.Expr) {
-    this.tokens.push(IR.Append, ...expr.toJSON());
+  append(expr: Exprs.Expr, trusted = false) {
+    this.tokens.push(IR.Append(trusted), ...expr.toJSON());
   }
 
   openElement(tagName: string) {
@@ -43,7 +43,7 @@ export class IRBuilder {
   }
 
   openAttr(kind: IR.AttributeKind, name: string) {
-    this.tokens.push(IR.Attribute(kind), name, IR.AttrStart);
+    this.tokens.push(IR.Attr(kind), name, IR.AttrStart);
   }
 
   closeAttr() {

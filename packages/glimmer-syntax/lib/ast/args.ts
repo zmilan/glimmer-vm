@@ -14,7 +14,7 @@ export class Args extends Locatable {
   constructor(
     public positional: Positional,
     public named: Named,
-    public internal: Internal,
+    public internal: InternalNode,
     loc: Location
   ) {
     super(loc);

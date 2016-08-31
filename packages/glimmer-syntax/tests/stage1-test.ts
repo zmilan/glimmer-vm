@@ -1,4 +1,4 @@
-import { Stage1, IR } from 'glimmer-syntax';
+import { Stage1 } from 'glimmer-syntax';
 import { IRBuilder, build } from './support';
 
 QUnit.module("[glimmer-syntax] Stage 1",  {});
@@ -14,6 +14,11 @@ function eq(template: string, callback: (b: IRBuilder) => void) {
 
 eq('{{simple}}', b => {
   b.append(b.unknown('simple'));
+  b.unknown('simple');
+});
+
+eq('{{{simple}}}', b => {
+  b.append(b.unknown('simple'), true);
   b.unknown('simple');
 });
 

@@ -2,6 +2,11 @@ export interface Constructor<T> {
   new(...args: any[]): T;
 }
 
+export interface Class<T> {
+  name: string;
+  prototype: T;
+}
+
 export type Option<T> = T | null; // tslint:disable-line
 export type Maybe<T> = Option<T> | undefined; // tslint:disable-line
 

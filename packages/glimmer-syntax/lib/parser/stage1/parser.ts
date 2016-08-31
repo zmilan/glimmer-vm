@@ -2,141 +2,70 @@ import { parse } from "handlebars/compiler/base";
 import { Location, Position } from "../../ast";
 import visit, { Delegate as HandlebarsDelegate, VisitorState } from './visit-handlebars';
 import { Delegate as HTMLDelegate, Char } from 'simple-html-tokenizer';
-import * as States from './states/concrete';
-import { State, Next, Result, AssertState, Event, DuckError } from './states/concrete';
-
-import { Option, isVoidTag } from 'glimmer-util';
-
-function unimpl<T>(name: string, err?: DuckError, arg?: T) {
-  if (err) {
-    let { methodName, actual } = err;
-    console.groupCollapsed(padRight(name, 30) + 'unimplemented');
-
-    let c = actual.constructor.name;
-    let expected = arg ? `${c}#${methodName}(arg)` : `${c}#${methodName}()`;
-
-    console.info(padRight(`Expected ${expected}`, 30));
-    console.info(padRight(`${c} implemented these events:`, 30));
-    implementedEvents(actual).forEach(event => {
-      let arity = actual[event].length;
-      if (arity === 0) console.debug(`${event}(${arg})`);
-      else console.debug(`${event}()`);
-    });
-
-    console.groupEnd();
-  } else {
-    console.groupCollapsed(padRight(name, 30) + 'unimplemented');
-    console.groupEnd();
-  }
-}
-
-function event(name: string, ...args: (string[] | string | number | boolean | Char)[]) {
-  debug('debug', null, name, ...args);
-}
-
-function transition(name: string, to: States.State, ...args: (string[] | string | number | boolean | Char)[]) {
-  debug('debug', `-> ${to.constructor.name}(ret=${to['ret'] && to['ret'].constructor.name})`, name, ...args);
-}
-
-function pad(count: number, padding = " "): string{
-  let pad = "";
-  for (let i = 0, l = count; i<l; i++) {
-    pad += padding;
-  }
-  return pad;
-}
-
-function padRight(s: string, count: number, padding = " ") {
-  if (s.length >= count) return s;
-  return s + pad(count - s.length, padding);
-}
-
-function padLeft(s: string, count: number, padding = " ") {
-  if (s.length >= count) return s;
-  return pad(count - s.length, padding) + s;
-}
-
-function output(reason: string, out: Result) {
-  console.log(padLeft('', 30) + padLeft(reason, 6) + ' ' + JSON.stringify(out));
-}
-
-function debug(kind: 'debug' | 'warn', to: Option<string>, name: string, ...args: (string[] | string | number | boolean | Char)[]) {
-  if (args.length) {
-    let a = args.map(a => {
-      if (Array.isArray(a)) {
-        return `[${a.join(', ')}]`;
-      } else if (typeof a === 'object') {
-        return a.chars;
-      } else {
-        return a;
-      }
-    });
-
-    console[kind](`${padRight(name, 30)}${padRight(to || '', 30)} (${a.join(', ')})`);
-  } else {
-    console[kind](`${padRight(name, 30)}${padRight(to || '', 30)}`);
-  }
-}
+import * as States from './states';
+import { State, Result, Event } from './states';
+import { EventLogger, AssertState, DuckError } from '../log-utils';
 
 export namespace IR {
-  export type  ProgramStart      = ['program:start'];
-  export const ProgramStart      = ['program:start'] as ProgramStart;
-  export type  ProgramEnd        = ['program:end'];
-  export const ProgramEnd        = ['program:end'] as ProgramEnd;
-  export type  ElementStart      = ['element:start'];
-  export const ElementStart      = ['element:start'] as ElementStart;
-  export type  ElementEnd        = ['element:end'];
-  export const ElementEnd        = ['element:end'] as ElementEnd;
-  export type  AttrStart         = ['attr:start'];
-  export const AttrStart         = ['attr:start'] as AttrStart;
-  export type  AttrEnd           = ['attr:end'];
-  export const AttrEnd           = ['attr:end'] as AttrEnd;
-  export type  Append            = ['append'];
-  export const Append            = ['append'] as Append;
+  export type  ProgramStart      = ['ProgramStart'];
+  export const ProgramStart      = ['ProgramStart'] as ProgramStart;
+  export type  ProgramEnd        = ['ProgramEnd'];
+  export const ProgramEnd        = ['ProgramEnd'] as ProgramEnd;
+  export type  ElementStart      = ['ElementStart'];
+  export const ElementStart      = ['ElementStart'] as ElementStart;
+  export type  ElementEnd        = ['ElementEnd'];
+  export const ElementEnd        = ['ElementEnd'] as ElementEnd;
+  export type  AttrStart         = ['AttrStart'];
+  export const AttrStart         = ['AttrStart'] as AttrStart;
+  export type  AttrEnd           = ['AttrEnd'];
+  export const AttrEnd           = ['AttrEnd'] as AttrEnd;
 
-  export type  ArgsStart         = ['args:start'];
-  export const ArgsStart         = ['args:start'] as ArgsStart;
-  export type  ArgsEnd           = ['args:end'];
-  export const ArgsEnd           = ['args:end'] as ArgsEnd;
-  export type  PositionalStart   = ['positional:start'];
-  export const PositionalStart   = ['positional:start'] as PositionalStart;
-  export type  PositionalEnd     = ['positional:end'];
-  export const PositionalEnd     = ['positional:end'] as PositionalEnd;
-  export type  NamedStart        = ['named:start'];
-  export const NamedStart        = ['named:start'] as NamedStart;
-  export type  NamedEnd          = ['named:end'];
-  export const NamedEnd          = ['named:end'] as NamedEnd;
+  export type  ArgsStart         = ['ArgsStart'];
+  export const ArgsStart         = ['ArgsStart'] as ArgsStart;
+  export type  ArgsEnd           = ['ArgsEnd'];
+  export const ArgsEnd           = ['ArgsEnd'] as ArgsEnd;
+  export type  PositionalStart   = ['PositionalStart'];
+  export const PositionalStart   = ['PositionalStart'] as PositionalStart;
+  export type  PositionalEnd     = ['PositionalEnd'];
+  export const PositionalEnd     = ['PositionalEnd'] as PositionalEnd;
+  export type  NamedStart        = ['NamedStart'];
+  export const NamedStart        = ['NamedStart'] as NamedStart;
+  export type  NamedEnd          = ['NamedEnd'];
+  export const NamedEnd          = ['NamedEnd'] as NamedEnd;
 
-  export type  Data              = ['data'];
-  export const Data              = ['data'] as Data;
-  export type  Comment           = ['comment'];
-  export const Comment           = ['comment'] as Comment;
+  export type  Data              = ['Data'];
+  export const Data              = ['Data'] as Data;
+  export type  Comment           = ['Comment'];
+  export const Comment           = ['Comment'] as Comment;
 
-  export type  Unknown           = ['unknown'];
-  export const Unknown           = ['unknown'] as Unknown;
-  export type  BlockGroupStart   = ['block-group:start'];
-  export const BlockGroupStart   = ['block-group:start'] as BlockGroupStart;
-  export type  BlockGroupEnd     = ['block-group:end'];
-  export const BlockGroupEnd     = ['block-group:end'] as BlockGroupEnd;
-  export type  BlockEnd          = ['block:end'];
-  export const BlockEnd          = ['block:end'] as BlockEnd;
+  export type  Unknown           = ['Unknown'];
+  export const Unknown           = ['Unknown'] as Unknown;
+  export type  BlockGroupStart   = ['BlockGroupStart'];
+  export const BlockGroupStart   = ['BlockGroupStart'] as BlockGroupStart;
+  export type  BlockGroupEnd     = ['BlockGroupEnd'];
+  export const BlockGroupEnd     = ['BlockGroupEnd'] as BlockGroupEnd;
+  export type  BlockEnd          = ['BlockEnd'];
+  export const BlockEnd          = ['BlockEnd'] as BlockEnd;
 
-  export type  Unput = ['unput']; // special operation from the tokenizer
+  export type  Unput             = ['Unput']; // special operation from the tokenizer
+  export const Unput             = ['Unput'] as Unput;
 
+  export type  Append            = ['Append', boolean];
+  export const Append            = (trusted: boolean): Append => ['Append', trusted];
   export type  OpenTagEnd<T extends OpenTagKind>
-                                 = ['open-tag:end', T];
-  export const OpenTagEnd        = <T extends OpenTagKind>(kind: T): OpenTagEnd<T> => ['open-tag:end', kind];
-  export type  Attribute<T extends AttributeKind>
-                                 = ['attr', AttributeKind];
-  export const Attribute         = <T extends AttributeKind>(kind: T): Attribute<T> => ['attr', kind];
-  export type  BlockStart        = ['block:start', number];
-  export const BlockStart        = (len: number): BlockStart => ['block:start', len];
-  export type  Path              = ['path',  number];
-  export const Path              = (len: number): Path => ['path', len];
-  export type  AtPath            = ['at-path',  number];
-  export const AtPath            = (len: number): AtPath => ['at-path', len];
-  export type  Locals            = ['locals', number];
-  export const Locals            = (len: number): Locals => ['locals', len];
+                                 = ['OpenTagEnd', T];
+  export const OpenTagEnd        = <T extends OpenTagKind>(kind: T): OpenTagEnd<T> => ['OpenTagEnd', kind];
+  export type  Attr<T extends AttributeKind>
+                                 = ['Attr', T];
+  export const Attr              = <T extends AttributeKind>(kind: T): Attr<T> => ['Attr', kind];
+  export type  BlockStart        = ['BlockStart', number];
+  export const BlockStart        = (len: number): BlockStart => ['BlockStart', len];
+  export type  Path              = ['Path',  number];
+  export const Path              = (len: number): Path => ['Path', len];
+  export type  AtPath            = ['AtPath',  number];
+  export const AtPath            = (len: number): AtPath => ['AtPath', len];
+  export type  Locals            = ['Locals', number];
+  export const Locals            = (len: number): Locals => ['Locals', len];
 
   export type  OpenTagKind       = 'open' | 'self-closing' | 'void';
   export type  AttributeKind     = 'single' | 'double' | 'none' | 'void';
@@ -165,54 +94,86 @@ export namespace IR {
     | BlockGroupEnd
     | BlockStart
     | BlockEnd
-    | Attribute<AttributeKind>
+    | Attr<AttributeKind>
     | Data
     | Comment
     | Constant
     | Unput
     ;
-}
 
-function isUnput(result: Result): result is [['unput']] {
-  return result.length === 1 && Array.isArray(result[0]) && result[0].length === 1 && result[0][0] === 'unput';
-}
+    export type TokenName =
+      'ProgramStart'
+    | 'ProgramEnd'
+    | 'ElementStart'
+    | 'ElementEnd'
+    | 'AttrStart'
+    | 'AttrEnd'
+    | 'Append'
+    | 'OpenTagEnd'
+    | 'Path'
+    | 'AtPath'
+    | 'Locals'
+    | 'ArgsStart'
+    | 'ArgsEnd'
+    | 'PositionalStart'
+    | 'PositionalEnd'
+    | 'NamedStart'
+    | 'NamedEnd'
+    | 'Unknown'
+    | 'BlockGroupStart'
+    | 'BlockGroupEnd'
+    | 'BlockStart'
+    | 'BlockEnd'
+    | 'Attr'
+    | 'Data'
+    | 'Comment'
+    | 'Constant'
+    | 'Unput'
+    ;
 
-function implementedEvents(obj: Object, out: string[] = []): string[] {
-  Object.getOwnPropertyNames(obj).forEach(name => {
-    let desc = Object.getOwnPropertyDescriptor(obj, name);
-    if (name[0] === name[0].toUpperCase() && typeof desc.value === 'function' && out.indexOf(name) === -1) out.push(name);
-  });
-
-  let prototype = Object.getPrototypeOf(obj);
-  if (prototype !== null && prototype !== Object.prototype && prototype !== Function.prototype) {
-    return implementedEvents(prototype, out);
-  } else {
-    return out;
+  export function kind(t: Tokens): [TokenName, (string | number | boolean)[]] {
+    if (typeof t === 'string') {
+      return ['Constant', [t]];
+    } else if (Array.isArray(t) && t.length > 0) {
+      return [t[0], t.slice(1)];
+    } else {
+      throw new Error(`Unexpected token ${JSON.stringify(t)}`);
+    }
   }
 }
 
+function isUnput(result: Result): result is [['Unput']] {
+  return result.length === 1 && Array.isArray(result[0]) && result[0].length === 1 && result[0][0] === 'Unput';
+}
+
 export class Stage1 implements HandlebarsDelegate, HTMLDelegate {
+  static parse(input: string): IR.Tokens[] {
+    let parser = new Stage1(input);
+    return parser.parse();
+  }
+
   private output: States.Result = [];
   private tag: State = new States.Template(null as any);
+  private logger = new EventLogger<State>();
   constructor(private input: string) {}
 
   private push(reason: string, result: Result) {
     if (result.length !== 0) {
-      output(reason, result);
+      this.logger.output(reason, result);
       this.output.push.apply(this.output, result);
     }
   }
 
-  private process<E extends Event, A extends AssertState, T>(assertion: A, name: E, pos: Position, arg?: T): void {
+  private process<E extends Event, A extends AssertState<State>, T>(assertion: A, name: E, pos: Position, arg?: T): void {
     let { ok, val: state } = assertion.assert(this.tag, name, arg === undefined ? 0 : 1);
 
     if (ok) {
-      let { next, result, transition: t } = arg ? state[name as string](pos, arg) : state[name as string](pos);
+      let { next, result, transition: t } = arg !== undefined ? state[name as string](pos, arg) : state[name as string](pos);
       let unput = isUnput(result);
 
       let current = this.tag;
       this.tag = next;
-      transition(name, next);
+      this.logger.transition(name, next);
       if (!unput) this.push('result', result);
       let { enter, exit } = current.transition(next, t);
       this.push('exit', exit);
@@ -220,7 +181,7 @@ export class Stage1 implements HandlebarsDelegate, HTMLDelegate {
 
       if (unput) this.process(assertion, name, pos, arg);
     } else {
-      unimpl(name, state as DuckError, arg);
+      this.logger.unimpl(name, state as DuckError<State>, arg);
       // throw new Error(`Expected ${className}#${methodName}(${arity} args) when dispatching ${name}.\n\n${className} implements these events: ${implementedEvents(this.tag).join(', ')}`);
     }
   }
@@ -255,8 +216,8 @@ export class Stage1 implements HandlebarsDelegate, HTMLDelegate {
     this.process(State, 'FinishBlockGroup', state.pos);
   }
 
-  StartMustache(state: VisitorState) {
-    this.process(States.ContentParent, 'BeginMustache', state.pos);
+  StartMustache(state: VisitorState, trusted: boolean) {
+    this.process(States.ContentParent, 'BeginMustache', state.pos, trusted);
   }
 
   EndMustache(state: VisitorState) {
@@ -264,19 +225,19 @@ export class Stage1 implements HandlebarsDelegate, HTMLDelegate {
   }
 
   StartPartial(state: VisitorState) {
-    unimpl('StartPartial');
+    this.logger.unimpl('StartPartial');
   }
 
   EndPartial(state: VisitorState) {
-    unimpl('EndPartial');
+    this.logger.unimpl('EndPartial');
   }
 
   StartSubExpression(state: VisitorState) {
-    unimpl('StartSubExpression');
+    this.logger.unimpl('StartSubExpression');
   }
 
   EndSubExpression(state: VisitorState) {
-    unimpl('EndSubExpression');
+    this.logger.unimpl('EndSubExpression');
   }
 
   Args(state: VisitorState, path: number) {
@@ -313,11 +274,11 @@ export class Stage1 implements HandlebarsDelegate, HTMLDelegate {
   }
 
   Comment(state: VisitorState, comment: string, loc: Location) {
-    unimpl('Comment');
+    this.logger.unimpl('Comment');
   }
 
   Content(state: VisitorState, content: string, loc: Location) {
-    unimpl('Content');
+    this.logger.unimpl('Content');
   }
 
   Unknown(state: VisitorState, p: string, loc: Location) {
@@ -338,23 +299,23 @@ export class Stage1 implements HandlebarsDelegate, HTMLDelegate {
   }
 
   String(state: VisitorState, s: string, loc: Location) {
-    unimpl('String');
+    this.logger.unimpl('String');
   }
 
   Number(state: VisitorState, n: number, loc: Location) {
-    unimpl('Number');
+    this.logger.unimpl('Number');
   }
 
   Boolean(state: VisitorState, b: boolean, loc: Location) {
-    unimpl('Boolean');
+    this.logger.unimpl('Boolean');
   }
 
   Null(state: VisitorState, loc: Location) {
-    unimpl('Null');
+    this.logger.unimpl('Null');
   }
 
   Undefined(state: VisitorState, loc: Location) {
-    unimpl('Undefined');
+    this.logger.unimpl('Undefined');
   }
 
   // HTML
@@ -384,7 +345,7 @@ export class Stage1 implements HandlebarsDelegate, HTMLDelegate {
 
   finishComment(pos: Position) {
     this.process(States.Comment, 'FinishComment', pos);
-    unimpl('FinishComment');
+    this.logger.unimpl('FinishComment');
   }
 
   openStartTag(pos: Position) {
@@ -428,11 +389,11 @@ export class Stage1 implements HandlebarsDelegate, HTMLDelegate {
   }
 
   voidAttributeValue(pos: Position) {
-    unimpl('VoidAttributeValue');
+    this.logger.unimpl('VoidAttributeValue');
   }
 
   beginWholeAttributeValue(pos: Position) {
-    unimpl('BeginWholeAttributeValue');
+    this.logger.unimpl('BeginWholeAttributeValue');
   }
 
   beginAttributeValue(pos: Position, quoted: boolean) {

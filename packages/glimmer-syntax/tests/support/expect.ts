@@ -105,7 +105,7 @@ export class Expect implements Builder {
 
   attr(name: string, value: Option<Content>, { quote }: { quote: Option<'single' | 'double'> } = { quote: 'double' }): this {
     if (value) {
-      this.expected.push(new Attr(name, value, quote))
+      this.expected.push(new Attr(name, value, quote));
     } else {
       this.expected.push(new VoidAttr(name));
     }

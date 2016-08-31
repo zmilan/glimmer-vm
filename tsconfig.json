@@ -15,6 +15,11 @@
             ]
         }
     },
+    "include": [
+        "packages/glimmer-syntax/**/*",
+        "packages/externs/handlebars.d.ts",
+        "typings/qunit/qunit.d.ts"
+    ],
     "exclude": [
         "dist",
         "demos",
@@ -23,6 +28,12 @@
         "bower_components",
         "typings/browser",
         "typings/browser.d.ts",
+        "packages/glimmer-test-helpers",
+        "packages/glimmer-benchmarks",
+        "packages/glimmer-compiler",
+        "packages/glimmer-demos",
+        "packages/glimmer-node",
+        "packages/glimmer-runtime",
         ".vscode"
     ]
 }

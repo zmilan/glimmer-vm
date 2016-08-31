@@ -5,7 +5,7 @@ export interface Destroyable {
 }
 
 export { getAttrNamespace } from './lib/namespaces';
-export { Option, Constructor, Maybe, Opaque, opaque, unwrap } from './lib/platform-utils';
+export { Option, Constructor, Class, Maybe, Opaque, opaque, unwrap } from './lib/platform-utils';
 export { default as assert } from './lib/assert';
 export { forEach, map, isArray, indexOfArray } from './lib/array-utils';
 export { default as isVoidTag } from './lib/void-tag-names';

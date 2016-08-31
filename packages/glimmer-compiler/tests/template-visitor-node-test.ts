@@ -3,7 +3,6 @@
 // function actionsEqual(input, expectedActions) {
 //   let ast = preprocess(input);
 
-
 //   deepEqual(actualActions, expectedActions);
 // }
 

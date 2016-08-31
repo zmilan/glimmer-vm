@@ -36,13 +36,21 @@ export namespace Expressions {
   type Params = Core.Params;
   type Hash = Core.Hash;
 
-  export type Unknown        = ['unknown', Path];
-  export type Arg            = ['arg', Path];
-  export type Get            = ['get', Path];
-  export type SelfGet        = ['self-get', Path];
+  export type KeywordName    = 'has-block' | 'has-block-params';
+  export type Keyword<N extends KeywordName>
+                             = [KeywordName, str];
+
+  export type LookupName     = 'arg' | 'get' | 'self-get' | 'unknown';
+  export type Lookup<N extends LookupName>
+                             = [LookupName, Path];
+
+  export type Unknown        = Lookup<'unknown'>;
+  export type Arg            = Lookup<'arg'>;
+  export type Get            = Lookup<'get'>;
+  export type SelfGet        = Lookup<'self-get'>;
+  export type HasBlock       = Keyword<'has-block'>;
+  export type HasBlockParams = Keyword<'has-block-params'>;
   export type Value          = str | number | boolean | null; // tslint:disable-line
-  export type HasBlock       = ['has-block', str];
-  export type HasBlockParams = ['has-block-params', str];
   export type Undefined      = ['undefined'];
 
   export type Expression =
@@ -51,8 +59,7 @@ export namespace Expressions {
     | Get
     | SelfGet
     | Concat
-    | HasBlock
-    | HasBlockParams
+    | Keyword<KeywordName>
     | Helper
     | Undefined
     | Value
@@ -96,20 +103,35 @@ export namespace Statements {
   type Hash = Core.Hash;
   type Path = Core.Path;
 
-  export type Text          = ['text', str];
+  export type DirectiveName = 'flush-element' | 'close-element';
+  export type Directive<N extends DirectiveName>
+                            = [N];
+  export type DataName      = 'text' | 'comment';
+  export type Data<N extends DataName>
+                            = [N, string];
+  export type AttrName      = 'static-attr' | 'dynamic-attr' | 'trusting-attr'
+  export type Attr<N extends AttrName>
+                            = [N, string, Expression, string /* namespace */];
+  export type ArgName       = 'static-arg' | 'dynamic-arg';
+  export type Arg<N extends ArgName>
+                            = [N, string, Expression];
+  export type SomeArg<N extends AttrName | ArgName>
+                            = [N, string, Expression];
+
+  export type Text          = Data<'text'>;
   export type Append        = ['append', Expression, boolean];
-  export type Comment       = ['comment', str];
+  export type Comment       = Data<'comment'>;
   export type Modifier      = ['modifier', Path, Params, Hash];
   export type Block         = ['block', Path, Params, Hash, TemplateReference, Option<TemplateReference>];
   export type OpenElement   = ['open-element', str, str[]];
-  export type FlushElement  = ['flush-element'];
-  export type CloseElement  = ['close-element'];
-  export type StaticAttr    = ['static-attr', str, Expression, str];
-  export type DynamicAttr   = ['dynamic-attr', str, Expression, str];
+  export type FlushElement  = Directive<'flush-element'>;
+  export type CloseElement  = Directive<'close-element'>;
+  export type StaticAttr    = Attr<'static-attr'>;
+  export type DynamicAttr   = Attr<'dynamic-attr'>;
+  export type TrustingAttr  = Attr<'trusting-attr'>;
+  export type DynamicArg    = Arg<'dynamic-arg'>;
+  export type StaticArg     = Arg<'static-arg'>;
   export type Yield         = ['yield', YieldTo, Params];
-  export type DynamicArg    = ['dynamic-arg', str, Expression];
-  export type StaticArg     = ['static-arg', str, Expression];
-  export type TrustingAttr  = ['trusting-attr', str, Expression, str];
 
   export const isText         = is<Text>('text');
   export const isAppend       = is<Append>('append');
@@ -127,20 +149,15 @@ export namespace Statements {
   export const isTrustingAttr = is<TrustingAttr>('trusting-attr');
 
   export type Statement =
-      Text
-    | Append
-    | Comment
+      Append
     | Modifier
     | Block
     | OpenElement
-    | FlushElement
-    | CloseElement
-    | StaticAttr
-    | DynamicAttr
     | Yield
-    | StaticArg
-    | DynamicArg
-    | TrustingAttr
+    | Directive<DirectiveName>
+    | Data<DataName>
+    | Attr<AttrName>
+    | Arg<ArgName>
     ;
 }
 

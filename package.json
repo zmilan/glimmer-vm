@@ -13,7 +13,7 @@
     "start": "ember serve --port=7357",
     "tsc": "tsc -p . --noEmit",
     "tslint": "tslint ./packages/**/*.ts",
-    "vscode-build": "tslint -s ./.vscode/tslint-formatters -t vscode ./packages/**/*.ts; tsc -p . --noEmit",
+    "vscode-build": "node ./bin/vscode-build.js",
     "sauce:connect": "ember sauce:connect",
     "sauce:disconnect": "ember sauce:disconnect"
   },
@@ -50,8 +50,8 @@
     "loader.js": "^4.0.10",
     "qunit-tap": "^1.5.1",
     "qunitjs": "^2.0.1",
-    "tslint": "next",
     "marked": "^0.3.5",
+    "tslint": "next",
     "typescript": "next"
   }
 }

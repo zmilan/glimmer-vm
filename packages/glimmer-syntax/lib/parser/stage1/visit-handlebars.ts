@@ -59,7 +59,7 @@ export interface Delegate {
   EndBlock(state: VisitorState);
   EndBlockGroup(state: VisitorState);
 
-  StartMustache(state: VisitorState);
+  StartMustache(state: VisitorState, trusted: boolean);
   EndMustache(state: VisitorState);
 
   StartPartial(state: VisitorState);
@@ -159,7 +159,7 @@ Statement('Mustache', {
   handle(visitor: Visitor, node: AST.Mustache) {
     let { delegate, state } = visitor;
 
-    delegate.StartMustache(state);
+    delegate.StartMustache(state, !node.escaped);
 
     let { params, hash, path } = node;
 

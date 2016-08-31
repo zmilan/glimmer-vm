@@ -94,7 +94,12 @@ module.exports = function(_options) {
     exclude: ['**/*.d.ts']
   });
 
-  var tsLintTree = new TSLint(tsTree, {
+  var tslintable = find(packages, {
+    include: ['**/*.ts'],
+    exclude: ['**/*.d.ts']
+  });
+
+  var tsLintTree = new TSLint(tslintable, {
     configuration: tslintConfig
   });
   /* tslint:enable:no-unused-variable */
@@ -126,14 +131,9 @@ module.exports = function(_options) {
 
   var cjsTree = typescript(tsTree, tsOptions);
 
-  // SimpleHTMLTokenizer ships as either ES6 or a single AMD-ish file, so we have to
-  // compile it from ES6 modules to CJS using TypeScript. broccoli-typescript-compiler
-  // only works with `.ts` files, so we rename the `.js` files to `.ts` first.
-  var simpleHTMLTokenizerLib = rename(tokenizerPath, '.js', '.ts');
-  var simpleHTMLTokenizerJSTree = typescript(simpleHTMLTokenizerLib, tsOptions);
   var handlebarsPath = path.join(require.resolve('handlebars'), '..', '..', 'dist', 'cjs');
 
-  cjsTree = merge([cjsTree, simpleHTMLTokenizerJSTree, handlebarsPath, simpleDOM]);
+  cjsTree = merge([cjsTree, handlebarsPath, simpleDOM]);
 
   // Glimmer packages require other Glimmer packages using non-relative module names
   // (e.g., `glimmer-compiler` may import `glimmer-util` instead of `../glimmer-util`),
@@ -190,7 +190,7 @@ module.exports = function(_options) {
   ]);
 
   var glimmerTests = merge([
-    transpiledTSLintTree,
+    // transpiledTSLintTree,
     find(jsTree, { include: ['*/tests/**/*.js'], exclude: ['glimmer-node/tests/**/*.js'] }),
     find(jsTree, { include: ['glimmer-test-helpers/**/*.js'] })
   ]);

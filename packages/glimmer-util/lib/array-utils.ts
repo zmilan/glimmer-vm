@@ -11,8 +11,8 @@ export function forEach<T>(array: T[], callback: (e?: T, i?: number, c?: T[]) =>
   }
 }
 
-export function map(array, callback) {
-  let output = [];
+export function map<T, U>(array: T[], callback: (element: T, item: number, collection: T[]) => U) {
+  let output: U[] = [];
   let i, l;
 
   for (i = 0, l = array.length; i < l; i++) {
