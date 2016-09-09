@@ -106,26 +106,15 @@ export class Block extends StatementSyntax {
     let template = scanner.blockFor(symbolTable, templateId);
     let inverse = (typeof inverseId === 'number') ? scanner.blockFor(symbolTable, inverseId) : null;
 
-    return new Block({
-      path,
-      args: Args.fromSpec(params, hash),
-      templates: Templates.fromSpec(template, inverse)
-    });
+    return new Block(path, Args.fromSpec(params, hash), Templates.fromSpec(template, inverse));
   }
 
-  static build(options): Block {
-    return new this(options);
-  }
-
-  path: string[];
-  args: Args;
-  templates: Templates;
-
-  constructor(options: { path: string[], args: Args, templates: Templates }) {
+  constructor(
+    private path: string[],
+    private args: Args,
+    private templates: Templates
+  ) {
     super();
-    this.path = options.path;
-    this.args = options.args;
-    this.templates = options.templates;
   }
 
   scan(scanner: BlockScanner): StatementSyntax {
@@ -142,23 +131,14 @@ export class Block extends StatementSyntax {
   }
 }
 
-interface AppendOpcode {
-  new(): Opcode;
-}
-
 abstract class Append extends StatementSyntax {
   static fromSpec(sexp: SerializedStatements.Append): Append {
     let [, value, trustingMorph] = sexp;
-    return new OptimizedAppend({ value: buildExpression(value), trustingMorph });
+    return new OptimizedAppend(buildExpression(value), trustingMorph);
   }
 
-  value: ExpressionSyntax<any>;
-  trustingMorph: boolean;
-
-  constructor({ value, trustingMorph }: { value: ExpressionSyntax<any>, trustingMorph: boolean }) {
+  constructor(protected value: ExpressionSyntax<any>, protected trustingMorph: boolean) {
     super();
-    this.value = value;
-    this.trustingMorph = trustingMorph;
   }
 }
 
@@ -166,7 +146,7 @@ export class OptimizedAppend extends Append {
   public type = "optimized-append";
 
   deopt(): UnoptimizedAppend {
-    return new UnoptimizedAppend(this);
+    return new UnoptimizedAppend(this.value, this.trustingMorph);
   }
 
   compile(compiler: CompileInto & SymbolLookup, env: Environment, symbolTable: SymbolTable) {
@@ -200,30 +180,14 @@ export class Modifier extends StatementSyntax {
   "c0420397-8ff1-4241-882b-4b7a107c9632" = true;
 
   public type: string = "modifier";
-  public path: string[];
-  public args: Args;
 
   static fromSpec(node) {
     let [, path, params, hash] = node;
-
-    return new Modifier({
-      path,
-      args: Args.fromSpec(params, hash)
-    });
+    return new Modifier(path, Args.fromSpec(params, hash));
   }
 
-  static build(path, options) {
-    return new Modifier({
-      path,
-      params: options.params,
-      hash: options.hash
-    });
-  }
-
-  constructor(options) {
+  constructor(public path: string[], public args: Args) {
     super();
-    this.path = options.path;
-    this.args = options.args;
   }
 
   compile(compiler: CompileInto & SymbolLookup, env: Environment, symbolTable: SymbolTable) {
@@ -243,22 +207,18 @@ export class Modifier extends StatementSyntax {
 
 export class StaticArg extends ArgumentSyntax<string> {
   public type = "static-arg";
-  name: string;
-  value: string;
 
   static fromSpec(node: SerializedStatements.StaticArg): StaticArg {
     let [, name, value] = node;
-    return new StaticArg({ name, value });
+    return new this(name, value);
   }
 
   static build(name: string, value: string, namespace: string=null): StaticArg {
-    return new this({ name, value });
+    return new this(name, value);
   }
 
-  constructor({ name, value }) {
+  constructor(private name: string, private value: string) {
     super();
-    this.name = name;
-    this.value = value;
   }
 
   compile() {
