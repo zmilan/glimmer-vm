@@ -1,5 +1,6 @@
 import { Simple, Template, RenderResult } from "glimmer-runtime";
 import {
+  BasicComponent,
   TestEnvironment,
   TestDynamicScope,
   equalTokens,
@@ -90,6 +91,40 @@ QUnit.test('static partial with local reference', assert => {
   equalTokens(root, `You smaht. You loyal. `);
   rerender({ qualities: [{id: 1, value: 'smaht'}, {id: 2, value: 'loyal'}] }, { assertStable: true });
   equalTokens(root, `You smaht. You loyal. `);
+});
+
+QUnit.test('static partial with named arguments', assert => {
+  env.registerBasicComponent('foo-bar', BasicComponent, `<p>{{@foo}}-{{partial 'test'}}</p>`);
+
+  let template = compile(`<foo-bar @foo={{foo}} @bar={{bar}} />`);
+
+  env.registerPartial('test', `{{@foo}}-{{@bar}}`);
+  render(template, { foo: 'foo', bar: 'bar' });
+
+  equalTokens(root, `foo-foo-bar`);
+
+  rerender(undefined, { assertStable: true });
+  equalTokens(root, `foo-foo-bar`);
+
+  rerender({ foo: 'FOO', bar: 'BAR' }, { assertStable: true });
+  equalTokens(root, `FOO-FOO-BAR`);
+
+  rerender({ foo: 'foo', bar: 'bar' }, { assertStable: true });
+  equalTokens(root, `foo-foo-bar`);
+});
+
+QUnit.test('static partial with has-block', assert => {
+  env.registerBasicComponent('foo-bar', BasicComponent, `<p>{{has-block}}-{{has-block 'inverse'}}-{{partial 'test'}}</p>`);
+
+  let template = compile(`<foo-bar>a block</foo-bar>`);
+
+  env.registerPartial('test', `{{has-block}}-{{has-block 'inverse'}}`);
+  render(template);
+
+  equalTokens(root, `true-false-true-false`);
+
+  rerender(undefined, { assertStable: true });
+  equalTokens(root, `true-false-true-false`);
 });
 
 QUnit.test('dynamic partial with static content', assert => {
