@@ -29,7 +29,15 @@ import {
 import OpcodeBuilderDSL from '../compiled/opcodes/builder';
 
 import {
-  PutValueOpcode
+  PutValueOpcode,
+  LabelOpcode,
+  TestOpcode,
+  SimpleTest,
+  NameToPartialOpcode,
+  JumpUnlessOpcode,
+  EvaluatePartialOpcode,
+  EnterOpcode,
+  ExitOpcode
 } from '../compiled/opcodes/vm';
 
 import {
@@ -659,6 +667,64 @@ export class Yield extends StatementSyntax {
   }
 }
 
+function isStaticPartialName(exp: ExpressionSyntax<Opaque>): exp is Value<string> {
+  return exp.type === 'value' && typeof (exp as Value<any>).value === 'string';
+}
+
+export abstract class Partial extends StatementSyntax {
+  static fromSpec(sexp: SerializedStatements.Partial): Partial {
+    let [, exp] = sexp;
+
+    let name = buildExpression(exp) as ExpressionSyntax<Opaque>;
+
+    if (isStaticPartialName(name)) {
+      return new StaticPartial(name);
+    } else {
+      return new DynamicPartial(name);
+    }
+  }
+}
+
+class StaticPartial extends Partial {
+  public type = "static-partial";
+
+  constructor(private name: string) {
+    super();
+  }
+
+  compile(compiler: CompileInto & SymbolLookup, env: Environment, symbolTable: SymbolTable) {
+
+
+
+    /*
+    //        Enter(BEGIN, END)
+    // BEGIN: Noop
+    //        PutArgs
+    //        NameToPartial
+    //        Test
+    //        JumpUnless(END)
+    //        EvaluatePartial
+    // END:   Noop
+    //        Exit
+    */
+
+    let compiledName = this.name.compile(compiler, env, symbolTable);
+
+    let BEGIN = new LabelOpcode("BEGIN");
+    let END = new LabelOpcode("END");
+
+    compiler.append(new EnterOpcode({ begin: BEGIN, end: END }));
+    compiler.append(BEGIN);
+    compiler.append(new PutValueOpcode({ expression: compiledName }));
+    compiler.append(new TestOpcode(SimpleTest));
+    compiler.append(new JumpUnlessOpcode({ target: END }));
+    compiler.append(new PutDynamicPartialDefinition(symbolTable));
+    compiler.append(new EvaluatePartialOpcode(symbolTable));
+    compiler.append(END);
+    compiler.append(new ExitOpcode());
+  }
+}
+
 class OpenBlockOpcode extends Opcode {
   type = "open-block";
   public to: number;
@@ -698,7 +764,7 @@ export class CloseBlockOpcode extends Opcode {
 }
 
 export class Value<T extends SerializedExpressions.Value> extends ExpressionSyntax<T> {
-  type = "value";
+  public type = "value";
 
   static fromSpec<U extends SerializedExpressions.Value>(value: U): Value<U> {
     return new Value(value);
@@ -708,11 +774,8 @@ export class Value<T extends SerializedExpressions.Value> extends ExpressionSynt
     return new this(value);
   }
 
-  public value: T;
-
-  constructor(value: T) {
+  constructor(public value: T) {
     super();
-    this.value = value;
   }
 
   inner(): T {
@@ -855,7 +918,6 @@ export class Helper extends ExpressionSyntax<Opaque> {
     return new this({ ref: Ref.build(path), args: Args.build(positional, named) });
   }
 
-  isStatic = false;
   ref: Ref;
   args: Args;
 
@@ -930,27 +992,22 @@ export class HasBlockParams extends ExpressionSyntax<boolean> {
 }
 
 export class Concat {
-  type = "concat";
+  public type = "concat";
 
   static fromSpec(sexp: SerializedExpressions.Concat): Concat {
     let [, params] = sexp;
 
-    return new Concat({ parts: params.map(buildExpression) });
+    return new Concat(params.map(buildExpression));
   }
 
   static build(parts): Concat {
-    return new this({ parts });
+    return new this(parts);
   }
 
-  isStatic = false;
-  parts: ExpressionSyntax<Opaque>[];
-
-  constructor({ parts }: { parts: ExpressionSyntax<Opaque>[] }) {
-    this.parts = parts;
-  }
+  constructor(private parts: ExpressionSyntax<Opaque>[]) {}
 
   compile(compiler: SymbolLookup, env: Environment, symbolTable: SymbolTable): CompiledConcat {
-    return new CompiledConcat({ parts: this.parts.map(p => p.compile(compiler, env, symbolTable)) });
+    return new CompiledConcat(this.parts.map(p => p.compile(compiler, env, symbolTable)));
   }
 }
 

@@ -265,8 +265,9 @@ export abstract class Environment {
     return defaultChangeLists(element, attr, isTrusting, namespace);
   }
 
-  abstract hasPartial(partialName: string[], symbolTable: SymbolTable): boolean;
-  abstract lookupPartial(PartialName: string[], symbolTable: SymbolTable): PartialDefinition<TemplateMeta>;
+  abstract hasPartial(partialName: string, symbolTable: SymbolTable): boolean;
+  abstract lookupPartial(PartialName: string, symbolTable: SymbolTable): PartialDefinition<TemplateMeta>;
+
   abstract hasComponentDefinition(tagName: string[], symbolTable: SymbolTable): boolean;
   abstract getComponentDefinition(tagName: string[], symbolTable: SymbolTable): ComponentDefinition<Opaque>;
 

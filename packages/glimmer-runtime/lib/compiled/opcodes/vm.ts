@@ -357,9 +357,11 @@ export class NameToPartialOpcode extends Opcode {
 
   evaluate(vm: VM) {
     let reference = vm.frame.getOperand();
-    let referenceCache = new ReferenceCache(reference);
-    let name: string = referenceCache.revalidate();
-    let partial = name && vm.env.hasPartial([name], this.symbolTable) ? vm.env.lookupPartial([name], this.symbolTable) : false;
+    let cache = isConst(reference) ? undefined : new ReferenceCache(reference);
+    let value = cache ? cache.peek() : reference.value();
+    let name = value && [String(value)];
+    let partial = name && vm.env.hasPartial(name, this.symbolTable) && vm.env.lookupPartial(name, this.symbolTable);
+
     vm.frame.setOperand(new ValueReference(partial));
 
     if (!isConst(reference)) {

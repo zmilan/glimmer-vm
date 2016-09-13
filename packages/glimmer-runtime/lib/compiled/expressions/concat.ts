@@ -6,11 +6,8 @@ import { Opaque } from 'glimmer-util';
 
 export default class CompiledConcat {
   public type = "concat";
-  public parts: CompiledExpression<Opaque>[];
 
-  constructor({ parts }: { parts: CompiledExpression<Opaque>[] }) {
-    this.parts = parts;
-  }
+  constructor(private parts: CompiledExpression<Opaque>[]) {}
 
   evaluate(vm: VM): ConcatReference {
     let parts: PathReference<Opaque>[] = new Array(this.parts.length);

@@ -10,13 +10,13 @@ class Frame {
   ops: OpSeq;
   op: Opcode;
   operand: PathReference<any> = null;
+  immediate: any = null;
   args: EvaluatedArgs = null;
   callerScope: Scope = null;
   blocks: Blocks = null;
   condition: Reference<boolean> = null;
   iterator: ReferenceIterator = null;
   key: string = null;
-  componentDefinition: ComponentDefinition<Component> = null;
 
   constructor(
     ops: OpSeq,
@@ -66,12 +66,20 @@ export class FrameStack {
     return this.frames[this.frame].op = op;
   }
 
-  getOperand(): PathReference<any> {
+  getOperand<T>(): PathReference<T> {
     return this.frames[this.frame].operand;
   }
 
   setOperand<T>(operand: PathReference<T>): PathReference<T> {
     return this.frames[this.frame].operand = operand;
+  }
+
+  getImmediate<T>(): T {
+    return this.frames[this.frame].immediate;
+  }
+
+  setImmediate<T>(value: T): T {
+    return this.frames[this.frame].immediate = value;
   }
 
   getArgs(): EvaluatedArgs {
@@ -105,14 +113,6 @@ export class FrameStack {
 
   setKey(key: string): string {
     return this.frames[this.frame].key = key;
-  }
-
-  getComponentDefinition(): ComponentDefinition<Component> {
-    return this.frames[this.frame].componentDefinition;
-  }
-
-  setComponentDefinition(definition: ComponentDefinition<Component>): ComponentDefinition<Component> {
-    return this.frames[this.frame].componentDefinition = definition;
   }
 
   getBlocks(): Blocks {
