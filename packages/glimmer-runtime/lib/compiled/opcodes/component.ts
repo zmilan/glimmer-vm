@@ -23,6 +23,14 @@ export class PutDynamicComponentDefinitionOpcode extends Opcode {
       vm.updateWith(new Assert(cache));
     }
   }
+
+  toJSON(): OpcodeJSON {
+    return {
+      guid: this._guid,
+      type: this.type,
+      args: ["$OPERAND"]
+    };
+  }
 }
 
 export class PutComponentDefinitionOpcode extends Opcode {
@@ -34,6 +42,14 @@ export class PutComponentDefinitionOpcode extends Opcode {
 
   evaluate(vm: VM) {
     vm.frame.setImmediate(this.definition);
+  }
+
+  toJSON(): OpcodeJSON {
+    return {
+      guid: this._guid,
+      type: this.type,
+      args: [JSON.stringify(this.definition.name)]
+    };
   }
 }
 
@@ -71,6 +87,14 @@ export class OpenComponentOpcode extends Opcode {
     vm.invokeLayout(args, layout, templates, callerScope, component, manager, shadow);
 
     vm.updateWith(new UpdateComponentOpcode(definition.name, component, manager, args, dynamicScope));
+  }
+
+  toJSON(): OpcodeJSON {
+    return {
+      guid: this._guid,
+      type: this.type,
+      args: ["$OPERAND"]
+    };
   }
 }
 

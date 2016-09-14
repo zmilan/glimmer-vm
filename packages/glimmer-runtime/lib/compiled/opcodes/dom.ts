@@ -88,7 +88,7 @@ export class OpenDynamicPrimitiveElementOpcode extends Opcode {
   public type = "open-dynamic-primitive-element";
 
   evaluate(vm: VM) {
-    let tagName = vm.frame.getOperand().value();
+    let tagName = vm.frame.getOperand<string>().value();
     vm.stack().openElement(tagName);
   }
 
@@ -581,7 +581,7 @@ export class DynamicAttrNSOpcode extends Opcode {
 
   evaluate(vm: VM) {
     let { name, namespace, isTrusting } = this;
-    let reference = vm.frame.getOperand();
+    let reference = vm.frame.getOperand<string>();
     vm.stack().setDynamicAttributeNS(namespace, name, reference, isTrusting);
   }
 
@@ -619,7 +619,7 @@ export class DynamicAttrOpcode extends Opcode {
 
   evaluate(vm: VM) {
     let { name, isTrusting } = this;
-    let reference = vm.frame.getOperand();
+    let reference = vm.frame.getOperand<string>();
     vm.stack().setDynamicAttribute(name, reference, isTrusting);
   }
 

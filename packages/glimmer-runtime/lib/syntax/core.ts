@@ -19,6 +19,11 @@ import {
 } from '../syntax';
 
 import {
+  StaticPartialSyntax,
+  DynamicPartialSyntax
+} from './builtins/partial';
+
+import {
   InlineBlock
 } from '../compiled/blocks';
 
@@ -29,15 +34,7 @@ import {
 import OpcodeBuilderDSL from '../compiled/opcodes/builder';
 
 import {
-  PutValueOpcode,
-  LabelOpcode,
-  TestOpcode,
-  SimpleTest,
-  NameToPartialOpcode,
-  JumpUnlessOpcode,
-  EvaluatePartialOpcode,
-  EnterOpcode,
-  ExitOpcode
+  PutValueOpcode
 } from '../compiled/opcodes/vm';
 
 import {
@@ -667,8 +664,8 @@ export class Yield extends StatementSyntax {
   }
 }
 
-function isStaticPartialName(exp: ExpressionSyntax<Opaque>): exp is Value<string> {
-  return exp.type === 'value' && typeof (exp as Value<any>).value === 'string';
+function isStaticPartialName(exp: ExpressionSyntax<Opaque>): exp is Value<any> {
+  return exp.type === 'value';
 }
 
 export abstract class Partial extends StatementSyntax {
@@ -678,50 +675,10 @@ export abstract class Partial extends StatementSyntax {
     let name = buildExpression(exp) as ExpressionSyntax<Opaque>;
 
     if (isStaticPartialName(name)) {
-      return new StaticPartial(name);
+      return new StaticPartialSyntax(name);
     } else {
-      return new DynamicPartial(name);
+      return new DynamicPartialSyntax(name);
     }
-  }
-}
-
-class StaticPartial extends Partial {
-  public type = "static-partial";
-
-  constructor(private name: string) {
-    super();
-  }
-
-  compile(compiler: CompileInto & SymbolLookup, env: Environment, symbolTable: SymbolTable) {
-
-
-
-    /*
-    //        Enter(BEGIN, END)
-    // BEGIN: Noop
-    //        PutArgs
-    //        NameToPartial
-    //        Test
-    //        JumpUnless(END)
-    //        EvaluatePartial
-    // END:   Noop
-    //        Exit
-    */
-
-    let compiledName = this.name.compile(compiler, env, symbolTable);
-
-    let BEGIN = new LabelOpcode("BEGIN");
-    let END = new LabelOpcode("END");
-
-    compiler.append(new EnterOpcode({ begin: BEGIN, end: END }));
-    compiler.append(BEGIN);
-    compiler.append(new PutValueOpcode({ expression: compiledName }));
-    compiler.append(new TestOpcode(SimpleTest));
-    compiler.append(new JumpUnlessOpcode({ target: END }));
-    compiler.append(new PutDynamicPartialDefinition(symbolTable));
-    compiler.append(new EvaluatePartialOpcode(symbolTable));
-    compiler.append(END);
-    compiler.append(new ExitOpcode());
   }
 }
 

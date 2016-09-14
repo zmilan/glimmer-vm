@@ -1,13 +1,11 @@
 import { Opcode, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { CompiledExpression } from '../expressions';
-import { CompiledArgs, EvaluatedArgs } from '../expressions/args';
+import { CompiledArgs } from '../expressions/args';
 import { VM, UpdatingVM } from '../../vm';
-import { CompiledBlock, Layout, InlineBlock, PartialBlock } from '../blocks';
+import { CompiledBlock, Layout, InlineBlock } from '../blocks';
 import { NULL_REFERENCE } from '../../references';
-import SymbolTable from '../../symbol-table';
-import { Reference, PathReference, ConstReference } from 'glimmer-reference';
-import { ValueReference } from '../expressions/value';
-import { ListSlice, Opaque, Slice, dict } from 'glimmer-util';
+import { Reference, ConstReference } from 'glimmer-reference';
+import { ListSlice, Opaque, Slice } from 'glimmer-util';
 import { CONSTANT_TAG, ReferenceCache, Revision, RevisionTag, isConst, isModified } from 'glimmer-reference';
 import Environment from '../../environment';
 
@@ -305,75 +303,6 @@ export class EvaluateOpcode extends Opcode {
       type,
       args: [debug],
       children
-    };
-  }
-}
-
-export class EvaluatePartialOpcode extends Opcode {
-  public type = "evaluate-partial";
-  public symbolTable: SymbolTable;
-  public name: CompiledExpression<any>;
-  private cache = dict<PartialBlock>();
-
-  constructor({ name, symbolTable }: { symbolTable: SymbolTable, name: CompiledExpression<any> }) {
-    super();
-    this.name = name;
-    this.symbolTable = symbolTable;
-  }
-
-  evaluate(vm: VM) {
-    let reference: PathReference<any> = this.name.evaluate(vm);
-    let referenceCache = new ReferenceCache(reference);
-    let name: string = referenceCache.revalidate();
-
-    let block = this.cache[name];
-    if (!block) {
-      let { template } = vm.env.lookupPartial([name], this.symbolTable);
-      block = template.asPartial(this.symbolTable);
-    }
-
-    vm.invokeBlock(block, EvaluatedArgs.empty());
-
-    if (!isConst(reference)) {
-      vm.updateWith(new Assert(referenceCache));
-    }
-  }
-
-  toJSON(): OpcodeJSON {
-    return {
-      guid: this._guid,
-      type: this.type,
-      args: [this.name.toJSON()]
-    };
-  }
-}
-
-export class NameToPartialOpcode extends Opcode {
-  public type = "name-to-partial";
-
-  constructor(private symbolTable: SymbolTable) {
-    super();
-  }
-
-  evaluate(vm: VM) {
-    let reference = vm.frame.getOperand();
-    let cache = isConst(reference) ? undefined : new ReferenceCache(reference);
-    let value = cache ? cache.peek() : reference.value();
-    let name = value && [String(value)];
-    let partial = name && vm.env.hasPartial(name, this.symbolTable) && vm.env.lookupPartial(name, this.symbolTable);
-
-    vm.frame.setOperand(new ValueReference(partial));
-
-    if (!isConst(reference)) {
-      vm.updateWith(new Assert(referenceCache));
-    }
-  }
-
-  toJSON(): OpcodeJSON {
-    return {
-      guid: this._guid,
-      type: this.type,
-      args: ["$OPERAND"]
     };
   }
 }

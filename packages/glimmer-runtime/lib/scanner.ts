@@ -20,9 +20,9 @@ export default class Scanner {
 
   scanLayout(): Layout {
     let { block, meta } = this;
-    let { blocks, named, yields } = block;
+    let { blocks, named, yields, hasPartials } = block;
 
-    let symbolTable = SymbolTable.forLayout(named, yields, meta);
+    let symbolTable = SymbolTable.forLayout(named, yields, hasPartials, meta);
     let program = buildStatements(block, blocks, symbolTable, this.env);
 
     return new Layout(program, symbolTable, named, yields);
