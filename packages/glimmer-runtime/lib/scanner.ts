@@ -25,7 +25,7 @@ export default class Scanner {
     let symbolTable = SymbolTable.forLayout(named, yields, hasPartials, meta);
     let program = buildStatements(block, blocks, symbolTable, this.env);
 
-    return new Layout(program, symbolTable, named, yields);
+    return new Layout(program, symbolTable, named, yields, hasPartials);
   }
 
   scanPartial(symbolTable: SymbolTable): PartialBlock {

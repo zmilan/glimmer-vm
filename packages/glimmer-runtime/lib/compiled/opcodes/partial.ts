@@ -85,7 +85,7 @@ export class EvaluatePartialOpcode extends Opcode {
       block = template.asPartial(this.symbolTable);
     }
 
-    vm.invokeBlock(block);
+    vm.invokePartial(block);
   }
 
   toJSON(): OpcodeJSON {

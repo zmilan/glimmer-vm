@@ -767,10 +767,15 @@ export class GetArgument<T> extends ExpressionSyntax<T> {
   compile(lookup: SymbolLookup): CompiledExpression<T> {
     let { parts } = this;
     let head = parts[0];
-    let symbol = lookup.getNamedSymbol(head);
 
-    let path = parts.slice(1);
-    return new CompiledLocalLookup(symbol, path, head);
+    if (lookup.hasNamedSymbol(head)) {
+      let symbol = lookup.getNamedSymbol(head);
+      let path = parts.slice(1);
+      return new CompiledLocalLookup(symbol, path, head);
+    } else if (lookup.hasPartialArgsSymbol()) {
+      let symbol = lookup.getPartialArgsSymbol();
+      return new CompiledLocalLookup(symbol, parts, head);
+    }
   }
 }
 

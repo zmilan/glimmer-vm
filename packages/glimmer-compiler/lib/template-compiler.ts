@@ -364,12 +364,10 @@ function isBuiltInHelper(expr) {
       || isHasBlockParams(expr);
 }
 
-function assertValidYield({ params, hash }): string {
+function assertValidYield({ hash }): string {
   let pairs = hash.pairs;
 
-  if (params && params.length > 0) {
-    throw new Error(`yield does not take any positional arguments`);
-  } else if ((pairs.length === 1 && pairs[0].key !== 'to') || pairs.length > 1) {
+  if ((pairs.length === 1 && pairs[0].key !== 'to') || pairs.length > 1) {
     throw new Error(`yield only takes a single named argument: 'to'`);
   } else if (pairs.length === 1 && pairs[0].value.type !== 'StringLiteral') {
     throw new Error(`you can only yield to a literal value`);

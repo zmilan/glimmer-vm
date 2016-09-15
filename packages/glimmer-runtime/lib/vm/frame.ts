@@ -4,7 +4,7 @@ import { InlineBlock } from '../compiled/blocks';
 import { EvaluatedArgs } from '../compiled/expressions/args';
 import { Opcode, OpSeq } from '../opcodes';
 import { LabelOpcode } from '../compiled/opcodes/vm';
-import { Component, ComponentManager, ComponentDefinition } from '../component/interfaces';
+import { Component, ComponentManager } from '../component/interfaces';
 
 class Frame {
   ops: OpSeq;

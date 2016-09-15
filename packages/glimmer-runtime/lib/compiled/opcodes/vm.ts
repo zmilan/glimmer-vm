@@ -137,12 +137,12 @@ export class BindNamedArgsOpcode extends Opcode {
     let names = layout.named;
     let symbols = names.map(name => layout.symbolTable.getNamed(name));
 
-    return new BindNamedArgsOpcode(names, symbols);
+    return new this(names, symbols);
   }
 
   constructor(
-    protected names: string[],
-    protected symbols: number[]
+    private names: string[],
+    private symbols: number[]
   ) {
     super();
   }
@@ -164,7 +164,7 @@ export class BindNamedArgsOpcode extends Opcode {
   }
 }
 
-export class BindBlocksOpcode extends BindNamedArgsOpcode {
+export class BindBlocksOpcode extends Opcode {
   public type = "bind-blocks";
 
   static create(layout: Layout) {
@@ -174,8 +174,43 @@ export class BindBlocksOpcode extends BindNamedArgsOpcode {
     return new this(names, symbols);
   }
 
+  constructor(
+    private names: string[],
+    private symbols: number[]
+  ) {
+    super();
+  }
+
   evaluate(vm: VM) {
     vm.bindBlocks(this.names, this.symbols);
+  }
+
+  toJSON(): OpcodeJSON {
+    let { names, symbols } = this;
+
+    let args = names.map((name, i) => `$${symbols[i]}: $BLOCKS[${name}]`);
+
+    return {
+      guid: this._guid,
+      type: this.type,
+      args
+    };
+  }
+}
+
+export class BindPartialArgsOpcode extends Opcode {
+  public type = "bind-partial-args";
+
+  static create(layout: Layout) {
+    return new this(layout.symbolTable.getPartialArgs());
+  }
+
+  constructor(private symbol: number) {
+    super();
+  }
+
+  evaluate(vm: VM) {
+    vm.bindPartialArgs(this.symbol);
   }
 }
 
