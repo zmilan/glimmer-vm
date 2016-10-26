@@ -390,7 +390,7 @@ class ComponentBuilder implements IComponentBuilder {
   }
 
   static(definition: StaticDefinition, args: Syntax.Args, templates: Syntax.Templates, symbolTable: SymbolTable, shadow: string[] = EMPTY_ARRAY) {
-    this.dsl.unit({ templates }, dsl => {
+    this.dsl.block(templates, dsl => {
       dsl.putComponentDefinition(definition);
       dsl.openComponent(args, shadow);
       dsl.closeComponent();
@@ -398,18 +398,17 @@ class ComponentBuilder implements IComponentBuilder {
   }
 
   dynamic(definitionArgs: Syntax.Args, definition: DynamicDefinition, args: Syntax.Args, templates: Syntax.Templates, symbolTable: SymbolTable, shadow: string[] = EMPTY_ARRAY) {
-    this.dsl.unit({ templates }, dsl => {
-      dsl.putArgs(definitionArgs);
-      dsl.putValue(makeFunctionExpression(definition));
-      dsl.test('simple');
-      dsl.enter('BEGIN', 'END');
-      dsl.label('BEGIN');
+    let { dsl } = this;
+
+    dsl.putArgs(definitionArgs);
+    dsl.putValue(makeFunctionExpression(definition));
+    dsl.test('simple');
+
+    dsl.dynamicBlock(templates, dsl => {
       dsl.jumpUnless('END');
       dsl.putDynamicComponentDefinition();
       dsl.openComponent(args, shadow);
       dsl.closeComponent();
-      dsl.label('END');
-      dsl.exit();
     });
   }
 }

@@ -43,18 +43,13 @@ export class DynamicPartialSyntax extends StatementSyntax {
   compile(dsl: OpcodeBuilderDSL) {
     let { name } = this;
 
-    dsl.startLabels();
-
     dsl.putValue(name);
     dsl.test('simple');
-    dsl.enter('BEGIN', 'END');
-    dsl.label('BEGIN');
-    dsl.jumpUnless('END');
-    dsl.putDynamicPartialDefinition();
-    dsl.evaluatePartial();
-    dsl.label('END');
-    dsl.exit();
 
-    dsl.stopLabels();
+    dsl.dynamicBlock(null, dsl => {
+      dsl.jumpUnless('END');
+      dsl.putDynamicPartialDefinition();
+      dsl.evaluatePartial();
+    });
   }
 }

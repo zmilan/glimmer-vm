@@ -182,12 +182,12 @@ export abstract class GuardedAppendOpcode<T extends Insertion> extends AppendOpc
     dsl.putValue(this.expression);
     dsl.test(IsComponentDefinitionReference.create);
 
-    dsl.simpleBlock((dsl, BEGIN, END) => {
+    dsl.dynamicBlock(null, dsl => {
       dsl.jumpUnless('VALUE');
       dsl.putDynamicComponentDefinition();
       dsl.openComponent(Args.empty());
       dsl.closeComponent();
-      dsl.jump(END);
+      dsl.jump('END');
       dsl.label('VALUE');
       dsl.append(new this.AppendOpcode());
     });

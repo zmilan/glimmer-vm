@@ -48,21 +48,23 @@ export default class EachSyntax extends StatementSyntax {
 
     let { args, templates } = this;
 
-    dsl.block({ templates, args }, (dsl, BEGIN, END) => {
+    dsl.putArgs(args);
+
+    dsl.dynamicBlock(templates, dsl => {
       dsl.putIterator();
 
       if (templates.inverse) {
         dsl.jumpUnless('ELSE');
       } else {
-        dsl.jumpUnless(END);
+        dsl.jumpUnless('END');
       }
 
-      dsl.iter({ templates }, (dsl, BEGIN, END) => {
+      dsl.iter(templates, dsl => {
         dsl.evaluate('default');
       });
 
       if (templates.inverse) {
-        dsl.jump(END);
+        dsl.jump('END');
         dsl.label('ELSE');
         dsl.evaluate('inverse');
       }

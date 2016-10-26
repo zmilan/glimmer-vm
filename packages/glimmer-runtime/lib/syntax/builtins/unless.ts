@@ -23,9 +23,9 @@ export default class UnlessSyntax extends StatementSyntax {
 
   compile(dsl: OpcodeBuilderDSL, env: Environment) {
     //        PutArgs
+    //        Test(Environment)
     //        Enter(BEGIN, END)
     // BEGIN: Noop
-    //        Test(Environment)
     //        JumpIf(ELSE)
     //        Evaluate(default)
     //        Jump(END)
@@ -39,7 +39,7 @@ export default class UnlessSyntax extends StatementSyntax {
     dsl.putArgs(args);
     dsl.test('environment');
 
-    dsl.block({ templates }, dsl => {
+    dsl.dynamicBlock(templates, dsl => {
       if (templates.inverse) {
         dsl.jumpIf('ELSE');
         dsl.evaluate('default');

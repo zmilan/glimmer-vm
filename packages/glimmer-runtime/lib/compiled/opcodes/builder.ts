@@ -6,7 +6,7 @@ import * as lists from './lists';
 import * as vm from './vm';
 import * as Syntax from '../../syntax/core';
 
-import { Stack, Dict, Opaque, dict } from 'glimmer-util';
+import { LinkedList, Stack, Dict, Opaque, dict } from 'glimmer-util';
 import { StatementCompilationBuffer, CompilesInto } from '../../syntax';
 import { Opcode, OpSeq } from '../../opcodes';
 import { CompiledArgs } from '../expressions/args';
@@ -342,11 +342,14 @@ function isCompilableExpression<E>(expr: Represents<E>): expr is CompilesInto<E>
   return expr && typeof expr['compile'] === 'function';
 }
 
-export type BlockArgs = { templates: Syntax.Templates, args?: Syntax.Args };
-
-const SIMPLE_BLOCK: BlockArgs = { templates: null };
-
 export default class OpcodeBuilder extends BasicOpcodeBuilder {
+  static forSymbolTable(env: Environment, symbolTable: SymbolTable): OpcodeBuilder {
+    let buffer = new Compile
+  }
+
+  public symbolTable: SymbolTable;
+  public list = new LinkedList<Opcode>();
+
   compile<E>(expr: Represents<E>): E {
     if (isCompilableExpression(expr)) {
       return expr.compile(this, this.env, this.symbolTable);
@@ -371,57 +374,55 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
     this.append(vm.BindPartialArgsOpcode.create(layout));
   }
 
-  simpleBlock(callback: BlockCallback) {
-    this.block(SIMPLE_BLOCK, callback);
+  // TODO
+  // come back to this
+  iter(templates: Syntax.Templates, callback: BlockCallback) {
+    this.withLabels(dsl => {
+      this.startBlock(templates);
+      this.enterList('BEGIN', 'END');
+      this.label('ITER');
+      this.nextIter('BREAK');
+      this.enterWithKey('BEGIN', 'END');
+      this.label('BEGIN');
+
+      callback(this, 'BEGIN', 'END');
+
+      this.label('END');
+      this.exit();
+      this.jump('ITER');
+      this.label('BREAK');
+      this.exitList();
+      this.endBlock();
+    });
   }
 
   // TODO
   // come back to this
-  block({ templates, args }: BlockArgs, callback: BlockCallback) {
-    if (args) this.putArgs(args);
+  dynamicBlock(templates: Syntax.Templates, callback: BlockCallback) {
+    this.block(templates, dsl => {
+      this.enter('BEGIN', 'END');
+      this.label('BEGIN');
 
-    this.startLabels();
-    this.startBlock(templates);
-    this.enter('BEGIN', 'END');
-    this.label('BEGIN');
+      callback(this, 'BEGIN', 'END');
 
-    callback(this, 'BEGIN', 'END');
-
-    this.label('END');
-    this.exit();
-    this.endBlock();
-    this.stopLabels();
+      this.label('END');
+      this.exit();
+    });
   }
 
-    // TODO
+  // TODO
   // come back to this
-  iter({ templates }: { templates: Syntax.Templates }, callback: BlockCallback) {
-    this.startLabels();
-    this.startBlock(templates);
-    this.enterList('BEGIN', 'END');
-    this.label('ITER');
-    this.nextIter('BREAK');
-    this.enterWithKey('BEGIN', 'END');
-    this.label('BEGIN');
-
-    callback(this, 'BEGIN', 'END');
-
-    this.label('END');
-    this.exit();
-    this.jump('ITER');
-    this.label('BREAK');
-    this.exitList();
-    this.endBlock();
-    this.stopLabels();
+  block(templates: Syntax.Templates, callback: (builder: OpcodeBuilder) => void) {
+    this.withLabels(dsl => {
+      this.startBlock(templates);
+      callback(this);
+      this.endBlock();
+    });
   }
 
-    // TODO
-  // come back to this
-  unit({ templates }: { templates: Syntax.Templates }, callback: (builder: OpcodeBuilder) => void) {
+  withLabels(callback: (builder: OpcodeBuilder) => void) {
     this.startLabels();
-    this.startBlock(templates);
     callback(this);
-    this.endBlock();
     this.stopLabels();
   }
 }

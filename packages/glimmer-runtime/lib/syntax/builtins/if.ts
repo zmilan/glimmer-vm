@@ -37,15 +37,15 @@ export default class IfSyntax extends StatementSyntax {
     dsl.putArgs(args);
     dsl.test('environment');
 
-    dsl.block({ templates }, (dsl, BEGIN, END) => {
+    dsl.dynamicBlock(templates, dsl => {
       if (templates.inverse) {
         dsl.jumpUnless('ELSE');
         dsl.evaluate('default');
-        dsl.jump(END);
+        dsl.jump('END');
         dsl.label('ELSE');
         dsl.evaluate('inverse');
       } else {
-        dsl.jumpUnless(END);
+        dsl.jumpUnless('END');
         dsl.evaluate('default');
       }
     });
