@@ -1,15 +1,15 @@
 import { GlimmerDescriptor, ValueBlueprint } from './blueprint';
 export type GlimmerObjectClass = typeof GlimmerObject;
 
-export interface Constructor<T extends GlimmerObject> {
+export interface Constructor<T> {
   new(...args): T;
   prototype: T;
 }
 
-export interface GlimmerClass<Extensions extends GlimmerObject> extends Constructor<Extensions> {
+export interface GlimmerClass<Extensions> extends Constructor<Extensions> {
   new(...args): Extensions;
-  create<Extensions, CreateOptions, T extends typeof GlimmerObject>(this: T & GlimmerClass<Extensions>, properties?: CreateOptions): Extensions & CreateOptions & GlimmerObject;
-  extend<Original extends GlimmerObject, Extensions extends GlimmerObject>(this: GlimmerClass<Original>, extensions?: Extensions): GlimmerClass<Original & Extensions>;
+  create<Extensions, CreateOptions, T extends GlimmerClass<Extensions>>(this: T & GlimmerClass<Extensions>, properties?: CreateOptions): Extensions & CreateOptions & GlimmerObject;
+  extend<Original, Extensions>(this: GlimmerClass<Original>, extensions?: Extensions): GlimmerClass<Original & Extensions>;
 }
 
 export abstract class GlimmerObjectBase<Extensions> {
@@ -17,11 +17,15 @@ export abstract class GlimmerObjectBase<Extensions> {
 }
 
 export default class GlimmerObject {
-  static create<Extensions extends GlimmerObject, CreateOptions extends GlimmerObject, T extends typeof GlimmerObject>(this: GlimmerClass<Extensions>, properties?: CreateOptions) {
-    return new this(properties) as Extensions & CreateOptions & GlimmerObject;
+  static create<Extensions, CreateOptions, T extends typeof GlimmerObject>(this: GlimmerClass<Extensions>, properties?: CreateOptions) {
+    let obj = new this();
+    if (properties) {
+      Object.assign(obj, properties);
+    }
+    return obj as Extensions & CreateOptions & GlimmerObject;
   }
 
-  static extend<Original extends GlimmerObject, Extensions extends GlimmerObject>(this: GlimmerClass<Original>, extensions?: Extensions): GlimmerClass<Original & Extensions & GlimmerObject> {
+  static extend<Original, Extensions>(this: GlimmerClass<Original>, extensions?: Extensions): GlimmerClass<Original & Extensions & GlimmerObject> {
     // This method intentionally uses internal typecasts to convince TypeScript
     // that what we're doing is legitimate. The real action of this method is in
     // its signature (and the signature of GlimmerClass).
@@ -44,10 +48,10 @@ export default class GlimmerObject {
     return sub as any;
   }
 
-  constructor(properties?: Object) {
-    if (properties !== undefined) {
-      Object.assign(this, properties);
-    }
+  init() {}
+
+  constructor() {
+    this.init();
   }
 }
 

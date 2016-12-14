@@ -1,0 +1,14 @@
+{
+  "name": "glimmer-interfaces",
+  "version": "0.5.2",
+  "typings": "index.d.ts",
+  "files": [
+    "index.d.ts"
+  ],
+  "dependencies": {
+    "glimmer-wire-format": "^0.5.2"
+  },
+  "devDependencies": {
+    "typescript": "^2.1.4"
+  }
+}

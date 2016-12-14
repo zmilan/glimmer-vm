@@ -1,0 +1,17 @@
+#!/bin/sh
+
+if [ -z "$1" ]; then
+  cd "packages/$1"
+  ./node_modules/.bin/tsc --noEmit -p . --rootDir $PWD
+fi
+
+for f in $(ls packages); do
+  if [[ $f == glimmer-* && -e "packages/$f/package.json" ]]; then
+    cd "packages/$f"
+    ./node_modules/.bin/tsc --noEmit -p . --rootDir $PWD | sed "s/\([^:]*\)/packages\/$f\/\1/"
+    cd ../..
+  fi
+done
+
+# cd packages/glimmer-util
+# tsc --noEmit -p .

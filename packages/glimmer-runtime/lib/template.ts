@@ -11,7 +11,7 @@ import { ElementStack } from './builder';
 import { VM } from './vm';
 import RenderResult from './vm/render-result';
 import Scanner from './scanner';
-import * as Simple from './dom/interfaces';
+import { SimpleDOM as Simple } from 'glimmer-interfaces';
 
 /**
  * Environment specific template.

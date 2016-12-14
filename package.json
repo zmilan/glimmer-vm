@@ -16,7 +16,8 @@
     "start": "ember serve --port=7357",
     "tsc": "tsc -p . --noEmit",
     "tslint": "tslint ./packages/**/*.ts",
-    "vscode-build": "tslint -s ./.vscode/tslint-formatters -t vscode ./packages/**/*.ts; tsc -p . --noEmit",
+    "vscode-build": "sh ./build/vscode-build",
+    "vscode-build-old": "tslint -s ./.vscode/tslint-formatters -t vscode ./packages/**/*.ts; tsc -p . --noEmit",
     "sauce:connect": "ember sauce:connect",
     "sauce:disconnect": "ember sauce:disconnect"
   },

@@ -1,4 +1,4 @@
-import GlimmerInstance from './object';
+import GlimmerInstance, { GlimmerClass } from './object';
 import Meta, { ClassMeta } from './meta';
 import { Computed } from './blueprint';
 
@@ -15,7 +15,7 @@ import { Opaque, Option } from 'glimmer-util';
 const META = new WeakMap();
 const CLASS_META = new WeakMap();
 
-export function classMeta(object: GlimmerInstance): ClassMeta {
+export function classMeta(object: GlimmerClass<Opaque>): ClassMeta {
   let m = CLASS_META.get(object);
 
   if (m === undefined) {

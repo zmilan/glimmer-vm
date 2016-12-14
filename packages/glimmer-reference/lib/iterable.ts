@@ -1,4 +1,4 @@
-import { LinkedList, ListNode, Opaque, dict } from 'glimmer-util';
+import { LinkedList, ListNode, Option, Opaque, dict } from 'glimmer-util';
 import { VersionedPathReference as PathReference, RevisionTag } from './validators';
 
 export interface IterationItem<T, U> {
@@ -9,7 +9,7 @@ export interface IterationItem<T, U> {
 
 export interface AbstractIterator<T, U, V extends IterationItem<T, U>> {
   isEmpty(): boolean;
-  next(): V;
+  next(): Option<V>;
 }
 
 export interface AbstractIterable<T, U, ItemType extends IterationItem<T, U>, ValueReferenceType extends PathReference<T>, MemoReferenceType extends PathReference<U>> {
@@ -136,7 +136,7 @@ export class IterationArtifacts {
     return this.list.nextNode(item);
   }
 
-  head(): ListItem {
+  head(): Option<ListItem> {
     return this.list.head();
   }
 }

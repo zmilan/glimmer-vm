@@ -1,74 +1,49 @@
 import {
-  // VM
-  VM,
-  DynamicScope,
-
-  // Compiler
-  Compilable,
-  CompiledBlock,
-  SymbolLookup,
-  SymbolTable,
-  compileLayout,
-
-  // Environment
-  ParsedStatement,
-  Environment,
-  Helper as GlimmerHelper,
-  ModifierManager,
-  DOMTreeConstruction,
-  DOMChanges,
-  IDOMChanges,
-
-  // Partials
-  PartialDefinition,
-
-  // Components
-  Component,
-  ComponentManager,
-  ComponentDefinition,
-  ComponentLayoutBuilder,
-  ComponentBuilder,
-
-  // Values
-  EvaluatedArgs,
-  EvaluatedNamedArgs,
-  EvaluatedPositionalArgs,
-
-  // Syntax Classes
-  StatementSyntax,
-
-  // Concrete Syntax
-  ArgsSyntax,
-  OptimizedAppend,
-  WithDynamicVarsSyntax,
-  InElementSyntax,
-
-  // References
-  PrimitiveReference,
-  ConditionalReference,
-
-  // Misc
-  Bounds,
-  ElementOperations,
-  FunctionExpression,
-  OpcodeBuilderDSL,
-  Simple,
-  getDynamicVar,
-
-  Template,
-  Layout
-} from "glimmer-runtime";
-
-import {
   compile as rawCompile,
   compileLayout as rawCompileLayout
 } from "./helpers";
 
 import {
+  Environment as BaseEnvironment
+} from 'glimmer-core-runtime';
+
+import {
+  EvaluatedArgs,
+  Environment,
+  Bounds,
+  CompiledBlock,
+  EvaluatedNamedArgs,
+  EvaluatedPositionalArgs,
+  SimpleDOM as Simple,
+  DynamicScope,
+  DOMChanges,
+  DOMTreeConstruction
+} from 'glimmer-interfaces';
+
+import {
+  ComponentDefinition,
+  ComponentManager,
+  Component,
+  ComponentClass,
+  ModifierManager,
+  PartialDefinition
+} from 'glimmer-interfaces/lib/statements';
+
+import {
+  Helper
+} from 'glimmer-interfaces/lib/environment';
+
+import {
+  ComponentLayoutBuilder,
+  LayoutCompiler
+} from 'glimmer-interfaces/lib/tier1/template';
+
+import {
+  FIXME,
+  Option,
   Destroyable,
   Dict,
   Opaque,
-  FIXME,
   assign,
   dict
 } from 'glimmer-util';
@@ -112,7 +87,7 @@ class ArrayIterator implements OpaqueIterator {
     return this.array.length === 0;
   }
 
-  next(): IterationItem<Opaque, number> {
+  next(): Option<IterationItem<Opaque, number>> {
     let { position, array, keyFor } = this;
 
     if (position >= array.length) return null;
@@ -143,7 +118,7 @@ class ObjectKeysIterator implements OpaqueIterator {
     return this.keys.length === 0;
   }
 
-  next(): IterationItem<Opaque, string> {
+  next(): Option<IterationItem<Opaque, string>> {
     let { position, keys, values, keyFor } = this;
 
     if (position >= keys.length) return null;
@@ -170,6 +145,18 @@ class EmptyIterator implements OpaqueIterator {
 
 const EMPTY_ITERATOR = new EmptyIterator();
 
+function isForEach(input: any): input is { forEach: (item: Opaque) => void } {
+  return !!input && typeof input['forEach'] === 'function';
+}
+
+interface KeysIterable {
+  [key: string]: Opaque;
+}
+
+function isKeysIterable(input: any): input is KeysIterable {
+  return !!input && typeof input === 'object';
+}
+
 class Iterable implements AbstractIterable<Opaque, Opaque, IterationItem<Opaque, Opaque>, UpdatableReference<Opaque>, UpdatableReference<Opaque>> {
   public tag: RevisionTag;
   private ref: Reference<Opaque>;
@@ -184,21 +171,26 @@ class Iterable implements AbstractIterable<Opaque, Opaque, IterationItem<Opaque,
   iterate(): OpaqueIterator {
     let { ref, keyFor } = this;
 
-    let iterable = ref.value() as any;
+    let iterable = ref.value();
 
     if (Array.isArray(iterable)) {
       return iterable.length > 0 ? new ArrayIterator(iterable, keyFor) : EMPTY_ITERATOR;
     } else if (iterable === undefined || iterable === null) {
       return EMPTY_ITERATOR;
-    } else if (iterable.forEach !== undefined) {
-      let array = [];
-      iterable.forEach(function(item) {
+    } else if (isForEach(iterable)) {
+      let array: Opaque[] = [];
+      iterable.forEach((item: Opaque) => {
         array.push(item);
       });
       return array.length > 0 ? new ArrayIterator(array, keyFor) : EMPTY_ITERATOR;
-    } else if (typeof iterable === 'object') {
+    } else if (isKeysIterable(iterable)) {
        let keys = Object.keys(iterable);
-       return keys.length > 0 ? new ObjectKeysIterator(keys, keys.map(key => iterable[key]), keyFor) : EMPTY_ITERATOR;
+       if (keys.length > 0) {
+         let values: Opaque[] = keys.map(key => (iterable as KeysIterable)[key]);
+         return new ObjectKeysIterator(keys, values, keyFor);
+       } else {
+         return EMPTY_ITERATOR;
+       }
      } else {
       throw new Error(`Don't know how to {{#each ${iterable}}}`);
     }
@@ -222,7 +214,7 @@ class Iterable implements AbstractIterable<Opaque, Opaque, IterationItem<Opaque,
 }
 
 export type Attrs = Dict<any>;
-export type AttrsDiff = { oldAttrs: Attrs, newAttrs: Attrs };
+export type AttrsDiff = { oldAttrs: Option<Attrs>, newAttrs: Option<Attrs> };
 
 export class BasicComponent {
   public attrs: Attrs;
@@ -236,12 +228,12 @@ export class BasicComponent {
 
 export class EmberishCurlyComponent extends GlimmerObject {
   public dirtinessTag = new DirtyableTag();
-  public tagName: string = null;
-  public attributeBindings: string[] = null;
+  public tagName: Option<string> = null;
+  public attributeBindings: Option<string[]> = null;
   public attrs: Attrs;
   public element: Element;
   public bounds: Bounds;
-  public parentView: Component = null;
+  public parentView: Option<Component> = null;
   public args: ProcessedArgs;
 
   static create(args: { attrs: Attrs }): EmberishCurlyComponent {
@@ -289,7 +281,21 @@ export class EmberishGlimmerComponent extends GlimmerObject {
   didRender() {}
 }
 
-class BasicComponentManager implements ComponentManager<BasicComponent> {
+export abstract class TestComponentDefinition<T> implements ComponentDefinition<T> {
+  public name: string; // for debugging
+  public manager: ComponentManager<T>;
+  public ComponentClass: ComponentClass;
+
+  private ['COMPONENT DEFINITION [id=e59c754e-61eb-4392-8c4a-2c0ac72bfcd4]'] = true;
+
+  constructor(name: string, manager: ComponentManager<T>, ComponentClass: ComponentClass) {
+    this.name = name;
+    this.manager = manager;
+    this.ComponentClass = ComponentClass;
+  }
+}
+
+abstract class BasicComponentManager implements ComponentManager<BasicComponent> {
   prepareArgs(definition: BasicComponentDefinition, args: EvaluatedArgs): EvaluatedArgs {
     return args;
   }
@@ -306,7 +312,7 @@ class BasicComponentManager implements ComponentManager<BasicComponent> {
       return layout;
     }
 
-    return env.compiledLayouts[definition.name] = compileLayout(new BasicComponentLayoutCompiler(definition.layoutString), env);
+    return env.compiledLayouts[definition.name] = this.compileLayout(new BasicComponentLayoutCompiler(definition.layoutString), env);
   }
 
   getSelf(component: BasicComponent): PathReference<Opaque> {
@@ -475,7 +481,7 @@ const BaseEmberishCurlyComponent = EmberishCurlyComponent.extend() as typeof Emb
 
 class EmberishCurlyComponentManager implements ComponentManager<EmberishCurlyComponent> {
   prepareArgs(definition: EmberishCurlyComponentDefinition, args: EvaluatedArgs, dynamicScope: DynamicScope): EvaluatedArgs {
-    let dyn = definition.ComponentClass ? definition.ComponentClass['fromDynamicScope'] : null;
+    let dyn: Option<string[]> = definition.ComponentClass ? definition.ComponentClass['fromDynamicScope'] : null;
     if (dyn) {
       let map = assign({}, args.named.map);
       dyn.forEach(name => map[name] = dynamicScope.get(name));
@@ -590,7 +596,18 @@ function emberToBool(value: any): boolean {
   }
 }
 
-class EmberishConditionalReference extends ConditionalReference {
+
+export class EmberishConditionalReference implements Reference<boolean> {
+  public tag: RevisionTag;
+
+  constructor(private inner: Reference<Opaque>) {
+    this.tag = inner.tag;
+  }
+
+  value(): boolean {
+    return this.toBool(this.inner.value());
+  }
+
   protected toBool(value: any): boolean {
     return emberToBool(value);
   }
@@ -645,7 +662,7 @@ class InertModifierManager implements ModifierManager<Opaque> {
 
   update(modifier: Opaque) {}
 
-  getDestructor(modifier: Opaque): Destroyable {
+  getDestructor(modifier: Opaque): Option<Destroyable> {
     return null;
   }
 }
@@ -654,7 +671,7 @@ export class TestModifier {
   constructor(
     public element: Element,
     public args: EvaluatedArgs,
-    public dom: IDOMChanges
+    public dom: DOMChanges
   ) {}
 }
 
@@ -663,7 +680,7 @@ export class TestModifierManager implements ModifierManager<TestModifier> {
   public updatedElements: Element[] = [];
   public destroyedModifiers: TestModifier[] = [];
 
-  create(element: Element, args: EvaluatedArgs, dynamicScope: DynamicScope, dom: IDOMChanges): TestModifier {
+  create(element: Element, args: EvaluatedArgs, dynamicScope: DynamicScope, dom: DOMChanges): TestModifier {
     return new TestModifier(element, args, dom);
   }
 
@@ -701,8 +718,10 @@ export interface TestEnvironmentOptions {
   appendOperations?: DOMTreeConstruction;
 }
 
-export class TestEnvironment extends Environment {
-  private helpers = dict<GlimmerHelper>();
+export abstract class TestEnvironment extends BaseEnvironment {
+  abstract compileLayout(compilable: LayoutCompiler, env: Environment): CompiledBlock;
+
+  private helpers = dict<Helper>();
   private modifiers = dict<ModifierManager<Opaque>>();
   private partials = dict<PartialDefinition<{}>>();
   private components = dict<ComponentDefinition<any>>();
@@ -903,9 +922,9 @@ export class TestEnvironment extends Environment {
 }
 
 export class TestDynamicScope implements DynamicScope {
-  private bucket;
+  private bucket: Dict<PathReference<Opaque>>;
 
-  constructor(bucket=null) {
+  constructor(bucket: Option<Dict<PathReference<Opaque>>> = null) {
     if (bucket) {
       this.bucket = assign({}, bucket);
     } else {
@@ -952,7 +971,7 @@ class DynamicComponentReference implements PathReference<ComponentDefinition<Opa
     this.tag = nameRef.tag;
   }
 
-  value(): ComponentDefinition<Opaque> {
+  value(): Option<ComponentDefinition<Opaque>> {
     let { env, nameRef } = this;
 
     let name = nameRef.value();
@@ -1002,7 +1021,7 @@ export interface BasicComponentFactory {
   new(attrs: Dict<any>): BasicComponent;
 }
 
-export abstract class GenericComponentDefinition<T> extends ComponentDefinition<T> {
+export abstract class GenericComponentDefinition<T> extends TestComponentDefinition<T> {
   public layoutString : string;
 
   constructor(name: string, manager: ComponentManager<T>, ComponentClass: any, layout: string) {
@@ -1021,7 +1040,7 @@ class StaticTaglessComponentDefinition extends GenericComponentDefinition<BasicC
 
 export interface EmberishCurlyComponentFactory {
   positionalParams?: string[];
-  create(options: { attrs: Attrs, targetObject }): EmberishCurlyComponent;
+  create(options: { attrs: Attrs, targetObject: Opaque }): EmberishCurlyComponent;
 }
 
 export class EmberishCurlyComponentDefinition extends GenericComponentDefinition<EmberishCurlyComponent> {
@@ -1043,7 +1062,7 @@ abstract class GenericComponentLayoutCompiler implements Compilable {
     return rawCompileLayout(this.layoutString, { env });
   }
 
-  abstract compile(builder: ComponentLayoutBuilder);
+  abstract compile(builder: ComponentLayoutBuilder): void;
 }
 
 class BasicComponentLayoutCompiler extends GenericComponentLayoutCompiler {

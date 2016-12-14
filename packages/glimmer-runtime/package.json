@@ -5,7 +5,7 @@
   "main": "dist/commonjs/index.js",
   "module": "dist/modules/index.js",
   "jsnext:main": "dist/modules/index.js",
-  "typings": "dist/commonjs/index.d.ts",
+  "typings": "index.ts",
   "directories": {
     "test": "tests"
   },
@@ -19,7 +19,8 @@
     "glimmer-util": "^0.5.2",
     "glimmer-reference": "^0.5.2",
     "glimmer-object-reference": "^0.5.2",
-    "glimmer-wire-format": "^0.5.2"
+    "glimmer-wire-format": "^0.5.2",
+    "glimmer-interfaces": "^0.5.2"
   },
   "files": [
     "dist"

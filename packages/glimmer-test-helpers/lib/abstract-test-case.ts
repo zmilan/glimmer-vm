@@ -1,10 +1,10 @@
 import { PathReference, Tagged, Revision, RevisionTag, DirtyableTag } from 'glimmer-reference';
-import { Template, RenderResult, Simple } from 'glimmer-runtime';
+import { Template, RenderResult, SimpleDOM as Simple } from 'glimmer-interfaces';
 import {
   TestEnvironment,
   TestDynamicScope
 } from './environment';
-import { Opaque } from 'glimmer-util';
+import { Opaque, Option } from 'glimmer-util';
 import { assign } from './helpers';
 
 export function skip(target: Object, name: string, descriptor: PropertyDescriptor) {
@@ -62,12 +62,13 @@ class SimplePathReference implements PathReference<Opaque> {
     return new SimplePathReference(this, key);
   }
 
-  value() {
-    return this.parent.value()[this.key];
+  value(): Opaque {
+    let val = this.parent.value();
+    return val && val[this.key];
   }
 }
 
-function isMarker(node) {
+function isMarker(node: any): node is (Comment | Text) {
   if (node instanceof Comment && node.textContent === '') {
     return true;
   }
@@ -81,8 +82,8 @@ function isMarker(node) {
 
 export class RenderingTest {
   public template: Template<{}>;
-  protected context: VersionedObject = null;
-  private result: RenderResult = null;
+  protected context: Option<VersionedObject> = null;
+  private result: Option<RenderResult> = null;
   public snapshot: Element[];
   public element: Node;
   public assert: QUnit['assert'];

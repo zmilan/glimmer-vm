@@ -1,4 +1,5 @@
-import { ConcreteBounds, SingleNodeBounds, Bounds } from '../bounds';
+import { ConcreteBounds, SingleNodeBounds } from '../bounds';
+import { Bounds } from 'glimmer-interfaces';
 import {
   domChanges as domChangesTableElementFix,
   treeConstruction as treeConstructionTableElementFix
@@ -11,7 +12,7 @@ import {
   domChanges as domChangesNodeMergingFix,
   treeConstruction as treeConstructionNodeMergingFix
 } from '../compat/text-node-merging-fix';
-import * as Simple from './interfaces';
+import { SimpleDOM as Simple } from 'glimmer-interfaces';
 
 import { Option } from 'glimmer-util';
 
@@ -277,4 +278,4 @@ helper = domChangesSvgElementFix(doc, helper, SVG_NAMESPACE);
 export default helper;
 export const DOMTreeConstruction = DOM.DOMTreeConstruction;
 export type DOMTreeConstruction = DOM.DOMTreeConstruction;
-export { Namespace as DOMNamespace } from './interfaces';
+export type Namespace = Simple.Namespace;

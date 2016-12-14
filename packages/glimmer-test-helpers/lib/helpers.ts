@@ -1,5 +1,6 @@
 import { tokenize } from "simple-html-tokenizer";
-import { Environment, Template, Layout, templateFactory } from "glimmer-runtime";
+import { Environment, Template, Layout, SimpleDOM as Simple } from "glimmer-interfaces";
+import { templateFactory } from "glimmer-runtime";
 import { precompile, PrecompileOptions } from "glimmer-compiler";
 
 // For Phantom
@@ -140,8 +141,8 @@ export function equalTokens(fragment, html, message=null) {
   // deepEqual(fragTokens.tokens, htmlTokens.tokens, msg);
 }
 
-export function generateSnapshot(element) {
-  let snapshot = [];
+export function generateSnapshot(element: Simple.Element) {
+  let snapshot: Simple.Node[] = [];
   let node = element.firstChild;
 
   while (node) {

@@ -77,6 +77,12 @@ export interface StatementCompilationBuffer extends CompileInto, SymbolLookup {
   toOpSeq(): OpSeq;
 }
 
+export interface ComponentBuilder {
+  static(definition: ComponentDefinition<Opaque>, args: Args, symbolTable: SymbolTable, shadow?: string[]);
+  dynamic(definitionArgs: Args, definition: DynamicDefinition, args: Args, symbolTable: SymbolTable, shadow?: string[]);
+}
+
+
 export type Program = Slice<Statement>;
 
 export const ATTRIBUTE = "e1185d30-7cac-4b12-b26a-35327d905d92";

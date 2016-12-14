@@ -1,4 +1,5 @@
 import { HasGuid, ensureGuid } from './guid';
+import { Opaque, Option } from './platform-utils';
 
 export interface Dict<T> {
   [index: string]: T;
@@ -6,8 +7,8 @@ export interface Dict<T> {
 
 export interface Set<T> {
   add(value: T): Set<T>;
-  delete(value: T);
-  forEach(callback: (T) => void);
+  delete(value: T): void;
+  forEach(callback: (value: T) => void): void;
 }
 
 let proto = Object.create(null, {
@@ -23,12 +24,16 @@ let proto = Object.create(null, {
 function EmptyObject() {}
 EmptyObject.prototype = proto;
 
+interface EmptyObject<T> {
+  new(): Dict<T>;
+}
+
 export function dict<T>(): Dict<T> {
   // let d = Object.create(null);
   // d.x = 1;
   // delete d.x;
   // return d;
-  return new EmptyObject();
+  return new EmptyObject() as Dict<T>;
 }
 
 export type SetMember = HasGuid | string;
@@ -51,7 +56,7 @@ export class DictSet<T extends SetMember> implements Set<T> {
     else if ((obj as any)._guid) delete this.dict[(obj as any)._guid];
   }
 
-  forEach(callback: (T) => void) {
+  forEach(callback: (value: T) => void) {
     let { dict } = this;
     Object.keys(dict).forEach(key => callback(dict[key]));
   }
@@ -63,19 +68,19 @@ export class DictSet<T extends SetMember> implements Set<T> {
 
 export class Stack<T> {
   private stack: T[] = [];
-  public current: T = null;
+  public current: Option<T> = null;
 
   push(item: T) {
     this.current = item;
     this.stack.push(item);
   }
 
-  pop(): T {
+  pop(): Option<T> {
     let item = this.stack.pop();
     let len = this.stack.length;
     this.current = len === 0 ? null : this.stack[len - 1];
 
-    return item;
+    return item as Option<T>;
   }
 
   isEmpty(): boolean {

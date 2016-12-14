@@ -1,6 +1,6 @@
 import { Opaque } from 'glimmer-util';
 import { classMeta } from './reference';
-import GlimmerObject from './object';
+import GlimmerObject, { GlimmerClass } from './object';
 
 export abstract class Blueprint {
   constructor(protected key: PropertyKey) {}
@@ -55,7 +55,7 @@ export class Computed<T> extends GlimmerDescriptor {
 
   }
 
-  define(home: Object, key: PropertyKey) {
+  define(home: GlimmerClass<Opaque>, key: PropertyKey) {
     classMeta(home).defineComputed(key, this);
 
     ACCESSOR_DESCRIPTOR.get = this.accessor.get;
@@ -81,7 +81,7 @@ export class ComputedBlueprint extends Blueprint {
     super(key);
   }
 
-  define(home: Object) {
+  define(home: GlimmerClass<Opaque>) {
     this.computed.define(home, this.key);
   }
 }

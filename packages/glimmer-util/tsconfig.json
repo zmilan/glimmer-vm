@@ -1,8 +1,18 @@
 {
   "extends": "../../build/tsconfig.json",
 
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "lib": [
+      "es2016",
+      "scripthost"
+    ]
+  },
+
   "include": [
     "index.ts",
-    "lib/**/*.ts"
+    "lib/**/*.ts",
+    "tests/**/*.ts"
   ]
 }

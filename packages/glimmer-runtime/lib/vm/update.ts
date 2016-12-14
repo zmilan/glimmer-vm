@@ -1,5 +1,6 @@
 import { Scope, DynamicScope, Environment } from '../environment';
-import { DestroyableBounds, clear, move as moveBounds } from '../bounds';
+import { clear, move as moveBounds } from '../bounds';
+import { DestroyableBounds } from 'glimmer-interfaces';
 import { ElementStack, Tracker, UpdatableTracker } from '../builder';
 import { TSISSUE, LOGGER, Option, Opaque, Stack, LinkedList, Dict, dict, expect, unwrap } from 'glimmer-util';
 import {
@@ -21,7 +22,7 @@ import { EvaluatedArgs } from '../compiled/expressions/args';
 import { OpcodeJSON, OpSeq, UpdatingOpcode, UpdatingOpSeq } from '../opcodes';
 import { LabelOpcode } from '../compiled/opcodes/vm';
 import { DOMChanges } from '../dom/helper';
-import * as Simple from '../dom/interfaces';
+import { SimpleDOM } from 'glimmer-interfaces';
 import { CapturedFrame } from './frame';
 
 import VM from './append';

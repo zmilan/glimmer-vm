@@ -36,11 +36,14 @@ export {
   SimpleRootReference
 } from './lib/abstract-test-case';
 
+import { Option } from 'glimmer-interfaces';
+
 declare global {
   interface QUnit {
-    equiv(left: any, right: any, message?: string): boolean;
-    deepEqual(left: any, right: any, message?: string): void;
-    strictEqual(left: any, right: any, message?: string): void;
-    equal(left: any, right: any, message?: string): void;
+    push(result: boolean, actual: any, expected: any, message: Option<string>): void;
+    equiv(left: any, right: any, message?: Option<string>): boolean;
+    deepEqual(left: any, right: any, message?: Option<string>): void;
+    strictEqual(left: any, right: any, message?: Option<string>): void;
+    equal(left: any, right: any, message?: Option<string>): void;
   }
 }

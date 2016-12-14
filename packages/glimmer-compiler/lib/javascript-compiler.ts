@@ -273,7 +273,7 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
   }
 
   popValue<T extends StackValue>(): T {
-    assert(this.values.length, "No expression found on stack");
+    assert(!!this.values.length, "No expression found on stack");
     return this.values.pop() as T;
   }
 }

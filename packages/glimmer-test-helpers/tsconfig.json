@@ -2,10 +2,10 @@
   "compilerOptions": {
     // Enhance Strictness
     "noImplicitAny": false,
-    "suppressImplicitAnyIndexErrors": true,
+    "suppressImplicitAnyIndexErrors": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
 
     // Environment Configuration
     "experimentalDecorators": false,

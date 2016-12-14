@@ -6,10 +6,10 @@ export enum LogLevel {
 }
 
 export interface Console {
-  log(message: string);
-  warn(message: string);
-  error(message: string);
-  trace();
+  log(message: string): void;
+  warn(message: string): void;
+  error(message: string): void;
+  trace(): void;
 }
 
 class NullConsole {
@@ -60,7 +60,9 @@ export class Logger {
   }
 }
 
-let _console = (typeof console === 'undefined') ? new NullConsole() : console;
+declare var console: Console | undefined;
+
+let _console: Console = (typeof console === 'undefined') ? new NullConsole() : console;
 
 ALWAYS = new Logger({ console: _console, level: LogLevel.Trace });
 const LOG_LEVEL = LogLevel.Warn;
