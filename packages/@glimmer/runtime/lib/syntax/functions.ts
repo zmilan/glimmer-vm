@@ -3,12 +3,7 @@ import OpcodeBuilder from '../compiled/opcodes/builder';
 import { CompiledExpression } from '../compiled/expressions';
 import CompiledHasBlock, { CompiledHasBlockParams } from '../compiled/expressions/has-block';
 import { BaselineSyntax, InlineBlock } from '../scanner';
-import CompiledHelper from '../compiled/expressions/helper';
 import {
-  CompiledArgs
-} from '../compiled/expressions/args';
-import {
-  CompiledGetBlockBySymbol,
   CompiledInPartialGetBlock
 } from '../compiled/expressions/has-block';
 import { PublicVM as VM } from '../vm';
@@ -164,6 +159,7 @@ STATEMENTS.add('optimized-append', (sexp: BaselineSyntax.OptimizedAppend, builde
 
 STATEMENTS.add('unoptimized-append', (sexp: BaselineSyntax.UnoptimizedAppend, builder) => {
   let [, value, trustingMorph] = sexp;
+
   let { inlines } = builder.env.macros();
   let returned = inlines.compile(sexp, builder) || value;
 
@@ -265,7 +261,7 @@ export function expr(expression: BaselineSyntax.AnyExpression, builder: OpcodeBu
   if (Array.isArray(expression)) {
     EXPRESSIONS.compile(expression, builder);
   } else {
-    builder.pushPrimitive(expression);
+    builder.primitive(expression);
   }
 }
 
@@ -273,7 +269,7 @@ EXPRESSIONS.add('unknown', (sexp: E.Unknown, builder: OpcodeBuilder) => {
   let path = sexp[1];
 
   if (builder.env.hasHelper(path, builder.symbolTable)) {
-    return new CompiledHelper(path, builder.env.lookupHelper(path, builder.symbolTable), CompiledArgs.empty(), builder.symbolTable);
+    EXPRESSIONS.compile(['helper', path, EMPTY_ARRAY, null], builder);
   } else {
     compilePath(path, builder);
   }
@@ -308,7 +304,7 @@ EXPRESSIONS.add('get', (sexp: E.Get, builder: OpcodeBuilder) => {
 });
 
 EXPRESSIONS.add('undefined', (_sexp, builder) => {
-  return builder.pushPrimitive(undefined);
+  return builder.primitive(undefined);
 });
 
 EXPRESSIONS.add('arg', (sexp: E.Arg, builder: OpcodeBuilder) => {
@@ -318,7 +314,7 @@ EXPRESSIONS.add('arg', (sexp: E.Arg, builder: OpcodeBuilder) => {
   let path: string[];
 
   if (named = builder.symbolTable.getSymbol('named', head)) {
-    builder.pushSymbol(named);
+    builder.getVariable(named);
     path = parts.slice(1);
   } else if (partial = builder.symbolTable.getPartialArgs()) {
     throw new Error("TODO: Partial");
@@ -326,7 +322,7 @@ EXPRESSIONS.add('arg', (sexp: E.Arg, builder: OpcodeBuilder) => {
     throw new Error(`[BUG] @${parts.join('.')} is not a valid lookup path.`);
   }
 
-  path.forEach(p => builder.getKey(p));
+  path.forEach(p => builder.getProperty(p));
 });
 
 EXPRESSIONS.add('has-block', (sexp: E.HasBlock, builder) => {
@@ -387,17 +383,17 @@ function compilePath(parts: string[], builder: OpcodeBuilder) {
   let path: string[];
 
   if (head === null) { // {{this.foo}}
-    builder.pushSelf();
+    builder.self();
     path = parts.slice(1);
   } else if (local = builder.symbolTable.getSymbol('local', head)) {
-    builder.pushSymbol(local);
+    builder.getVariable(local);
     path = parts.slice(1);
   } else {
-    builder.pushSelf();
+    builder.self();
     path = parts;
   }
 
-  path.forEach(p => builder.getKey(p));
+  path.forEach(p => builder.getProperty(p));
 }
 
 export type NestedBlockSyntax = BaselineSyntax.NestedBlock;
@@ -478,9 +474,8 @@ export class Inlines {
       return ['expr', value];
     }
 
-    if (path.length > 1 && !params && !hash) {
-      return ['expr', value];
-    }
+
+    if (path.length > 1) return ['expr', value];
 
     let name = path[0];
     let index = this.names[name];
@@ -523,24 +518,23 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       throw new Error(`SYNTAX ERROR: #if requires an argument`);
     }
 
-    let condition = builder.getLocal();
+    let condition = builder.local();
     expr(params[0], builder);
-    builder.putLocal(condition);
+    builder.setLocal(condition);
 
-    builder.pushLocal(condition);
+    builder.getLocal(condition);
     builder.test('environment');
 
-    builder.labelled(null, b => {
+    builder.labelled(b => {
       if (_default && inverse) {
-        builder.pushLocal(condition);
         b.jumpUnless('ELSE');
-        b.evaluate(_default);
+        b.evaluate(_default, [builder.GetLocal(condition)]);
         b.jump('END');
         b.label('ELSE');
-        b.evaluate(inverse);
+        b.evaluate(inverse, null);
       } else if (_default) {
         b.jumpUnless('END');
-        b.evaluate(_default);
+        b.evaluate(_default, [builder.GetLocal(condition)]);
       } else {
         throw unreachable();
       }
@@ -560,21 +554,29 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     // END:   Noop
     //        Exit
 
-    let [,, params, hash, _default, inverse] = sexp;
-    let args = compileArgs(params, hash, builder);
+    let [,, params,, _default, inverse] = sexp;
 
+    if (!params) {
+      throw new Error(`SYNTAX ERROR: #if requires an argument`);
+    }
+
+    let condition = builder.local();
+    expr(params[0], builder);
+    builder.setLocal(condition);
+
+    builder.getLocal(condition);
     builder.test('environment');
 
-    builder.labelled(null, b => {
+    builder.labelled(b => {
       if (_default && inverse) {
         b.jumpIf('ELSE');
-        b.evaluate(_default);
+        b.evaluate(_default, [builder.GetLocal(condition)]);
         b.jump('END');
         b.label('ELSE');
-        b.evaluate( inverse);
+        b.evaluate(inverse, null);
       } else if (_default) {
         b.jumpIf('END');
-        b.evaluate(_default);
+        b.evaluate(_default, [builder.GetLocal(condition)]);
       } else {
         throw unreachable();
       }
@@ -594,21 +596,30 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     // END:   Noop
     //        Exit
 
-    let [,, params, hash, _default, inverse] = sexp;
-    compileArgs(params, hash, builder);
+    let [,, params,, _default, inverse] = sexp;
 
+    if (!params) {
+      throw new Error(`SYNTAX ERROR: #if requires an argument`);
+    }
+
+    let condition = builder.local();
+    expr(params[0], builder);
+    builder.setLocal(condition);
+
+    builder.getLocal(condition);
     builder.test('environment');
 
-    builder.labelled(null, b => {
+    builder.labelled(b => {
       if (_default && inverse) {
         b.jumpUnless('ELSE');
-        b.evaluate(_default);
+        builder.getLocal(condition);
+        b.evaluate(_default, [builder.GetLocal(condition)]);
         b.jump('END');
         b.label('ELSE');
-        b.evaluate(inverse);
+        b.evaluate(inverse, null);
       } else if (_default) {
         b.jumpUnless('END');
-        b.evaluate(_default);
+        b.evaluate(_default, [builder.GetLocal(condition)]);
       } else {
         throw unreachable();
       }
@@ -640,10 +651,24 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     // END:    Noop
     //         Exit
 
-    let [,, params, hash, _default, inverse] = sexp;
-    let args = compileArgs(params, hash, builder);
+    // TOMORROW: Locals for key, value, memo
+    // TOMORROW: What is the memo slot used for?
 
-    builder.labelled(args, b => {
+    let [,, params, hash, _default, inverse] = sexp;
+
+    let list = builder.local();
+
+    if (hash && hash[0][0] === 'key') {
+      expr(hash[1][0], builder);
+    } else {
+      throw new Error('Compile error: #each without key');
+    }
+
+    expr(params[0], builder);
+    builder.setLocal(list);
+    builder.getLocal(list);
+
+    builder.labelled(b => {
       b.putIterator();
 
       if (inverse) {
@@ -653,15 +678,19 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       }
 
       b.iter(b => {
-        b.evaluate(unwrap(_default));
+        b.evaluate(unwrap(_default), 2);
       });
 
       if (inverse) {
         b.jump('END');
         b.label('ELSE');
-        b.evaluate(inverse);
+        b.evaluate(inverse, null);
       }
     });
+
+    // pop the iterator that is at the top of the stack
+    // throughout this process.
+    builder.pop();
   });
 
   return { blocks, inlines };
