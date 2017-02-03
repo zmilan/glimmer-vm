@@ -90,7 +90,7 @@ module.exports = function(_options) {
     include: ['**/*.js'],
     exclude: ['**/*.d.ts']
   });
-  var HTMLTokenizer = stew.log(tokenizerTree);
+  var HTMLTokenizer = tokenizerTree;
 
   var tsTree = find(packages, {
     include: ['**/*.ts'],
