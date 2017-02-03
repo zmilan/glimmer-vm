@@ -85,12 +85,12 @@ module.exports = function(_options) {
   /*
    * ES6 Build
    */
-  var tokenizerPath = path.join(require.resolve('simple-html-tokenizer'), '..', 'es6');
+  var tokenizerPath = path.join(require.resolve('simple-html-tokenizer'), '..', '..', 'es6');
   var tokenizerTree = find(tokenizerPath, {
     include: ['**/*.js'],
     exclude: ['**/*.d.ts']
   });
-  var HTMLTokenizer = mv(tokenizerTree, 'simple-html-tokenizer');
+  var HTMLTokenizer = stew.log(tokenizerTree);
 
   var tsTree = find(packages, {
     include: ['**/*.ts'],
