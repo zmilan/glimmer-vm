@@ -11,13 +11,13 @@ voidTagNames.split(" ").forEach(tagName => {
 });
 
 export default {
-  reset: function() {
+  reset() {
     this.currentNode = null;
   },
 
   // Comment
 
-  beginComment: function() {
+  beginComment() {
     this.currentNode = b.comment("");
     this.currentNode.loc = {
       source: null,
@@ -26,11 +26,11 @@ export default {
     };
   },
 
-  appendToCommentData: function(char) {
+  appendToCommentData(pos, char) {
     this.currentNode.value += char;
   },
 
-  finishComment: function() {
+  finishComment() {
     this.currentNode.loc.end = b.pos(this.tokenizer.line, this.tokenizer.column);
 
     appendChild(this.currentElement(), this.currentNode);
@@ -38,7 +38,7 @@ export default {
 
   // Data
 
-  beginData: function() {
+  beginData() {
     this.currentNode = b.text();
     this.currentNode.loc = {
       source: null,
@@ -47,11 +47,11 @@ export default {
     };
   },
 
-  appendToData: function(char) {
+  appendToData(pos, char) {
     this.currentNode.chars += char;
   },
 
-  finishData: function() {
+  finishData() {
     this.currentNode.loc.end = b.pos(this.tokenizer.line, this.tokenizer.column);
 
     appendChild(this.currentElement(), this.currentNode);
@@ -59,12 +59,12 @@ export default {
 
   // Tags - basic
 
-  tagOpen: function() {
+  tagOpen() {
     this.tagOpenLine = this.tokenizer.line;
     this.tagOpenColumn = this.tokenizer.column;
   },
 
-  beginStartTag: function() {
+  openStartTag() {
     this.currentNode = {
       type: 'StartTag',
       name: "",
@@ -76,7 +76,7 @@ export default {
     };
   },
 
-  beginEndTag: function() {
+  openEndTag() {
     this.currentNode = {
       type: 'EndTag',
       name: "",
@@ -88,7 +88,7 @@ export default {
     };
   },
 
-  finishTag: function() {
+  finishTag(pos) {
     let { line, column } = this.tokenizer;
 
     let tag = this.currentNode;
@@ -98,14 +98,14 @@ export default {
       this.finishStartTag();
 
       if (voidMap[tag.name] || tag.selfClosing) {
-        this.finishEndTag(true);
+        this.finishEndTag(pos, true);
       }
     } else if (tag.type === 'EndTag') {
-      this.finishEndTag(false);
+      this.finishEndTag(pos, false);
     }
   },
 
-  finishStartTag: function() {
+  finishStartTag() {
     let { name, attributes, modifiers, comments } = this.currentNode;
 
     let loc = b.loc(this.tagOpenLine, this.tagOpenColumn);
@@ -113,7 +113,7 @@ export default {
     this.elementStack.push(element);
   },
 
-  finishEndTag: function(isVoid) {
+  finishEndTag(pos, isVoid) {
     let tag = this.currentNode;
 
     let element = this.elementStack.pop();
@@ -128,19 +128,19 @@ export default {
     appendChild(parent, element);
   },
 
-  markTagAsSelfClosing: function() {
+  markTagAsSelfClosing() {
     this.currentNode.selfClosing = true;
   },
 
   // Tags - name
 
-  appendToTagName: function(char) {
+  appendToTagName(pos, char) {
     this.currentNode.name += char;
   },
 
   // Tags - attributes
 
-  beginAttribute: function() {
+  beginAttribute() {
     let tag = this.currentNode;
     if (tag.type === 'EndTag') {
        throw new Error(
@@ -160,17 +160,17 @@ export default {
     };
   },
 
-  appendToAttributeName: function(char) {
+  appendToAttributeName(pos, char) {
     this.currentAttribute.name += char;
   },
 
-  beginAttributeValue: function(isQuoted) {
+  beginAttributeValue(pos, isQuoted) {
     this.currentAttribute.isQuoted = isQuoted;
     this.currentAttribute.valueStartLine = this.tokenizer.line;
     this.currentAttribute.valueStartColumn = this.tokenizer.column;
   },
 
-  appendToAttributeValue: function(char) {
+  appendToAttributeValue(pos, char) {
     let parts = this.currentAttribute.parts;
     let lastPart = parts[parts.length - 1];
 
@@ -198,7 +198,7 @@ export default {
     }
   },
 
-  finishAttributeValue: function() {
+  finishAttributeValue() {
     let { name, parts, isQuoted, isDynamic, valueStartLine, valueStartColumn } = this.currentAttribute;
     let value = assembleAttributeValue(parts, isQuoted, isDynamic, this.tokenizer.line);
     value.loc = b.loc(
@@ -216,7 +216,7 @@ export default {
     this.currentNode.attributes.push(attribute);
   },
 
-  reportSyntaxError: function(message) {
+  reportSyntaxError(message) {
     throw new Error(`Syntax error at line ${this.tokenizer.line} col ${this.tokenizer.column}: ${message}`);
   }
 };

@@ -25,16 +25,17 @@ export default {
   },
 
   BlockStatement: function(block) {
+    let { tokenizer } = this;
     delete block.inverseStrip;
     delete block.openString;
     delete block.closeStrip;
 
-    if (this.tokenizer.state === 'comment') {
-      this.appendToCommentData('{{' + this.sourceForMustache(block) + '}}');
+    if (tokenizer.state === 'comment') {
+      this.appendToCommentData(tokenizer.pos(), '{{' + this.sourceForMustache(block) + '}}');
       return;
     }
 
-    if (this.tokenizer.state !== 'comment' && this.tokenizer.state !== 'data' && this.tokenizer.state !== 'beforeData') {
+    if (tokenizer.state !== 'comment' && tokenizer.state !== 'data' && tokenizer.state !== 'beforeData') {
       throw new Error("A block may only be used inside an HTML element or another block.");
     }
 
@@ -53,7 +54,7 @@ export default {
     let mustache = b.mustache(path, params, hash, !escaped, loc);
 
     if (tokenizer.state === 'comment') {
-      this.appendToCommentData('{{' + this.sourceForMustache(mustache) + '}}');
+      this.appendToCommentData(tokenizer.pos(), '{{' + this.sourceForMustache(mustache) + '}}');
       return;
     }
 
@@ -70,7 +71,7 @@ export default {
         break;
       case "attributeName":
       case "afterAttributeName":
-        this.beginAttributeValue(false);
+        this.beginAttributeValue(tokenizer.pos(), false);
         this.finishAttributeValue();
         addElementModifier(this.currentNode, mustache);
         tokenizer.state = "beforeAttributeName";
@@ -113,7 +114,7 @@ export default {
     let comment = b.mustacheComment(value, loc);
 
     if (tokenizer.state === 'comment') {
-      this.appendToCommentData('{{' + this.sourceForMustache(comment) + '}}');
+      this.appendToCommentData(tokenizer.pos(), '{{' + this.sourceForMustache(comment) + '}}');
       return;
     }
 
