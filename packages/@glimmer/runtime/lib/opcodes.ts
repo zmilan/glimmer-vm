@@ -217,6 +217,16 @@ export const enum Op {
   GetLocal,
 
   /**
+   * Operation: Duplicate the top value of the stack.
+   * Format:
+   *   (Dup)
+   * Operand Stack:
+   *   ..., Opaque →
+   *   ..., Opaque, Opaque →
+   */
+  Dup,
+
+  /**
    * Operation: Pop the stack and throw away the value.
    * Format:
    *   (Pop)
@@ -360,7 +370,7 @@ export const enum Op {
    * Format:
    *   (OpenDynamicElement)
    * Operand Stack:
-   *   ..., ElementOperations, string →
+   *   ..., Reference<string>, ElementOperations →
    *   ...
    */
   OpenDynamicElement,
@@ -561,17 +571,19 @@ export const enum Op {
   Exit,
 
   /**
-   * Operation: Convert the top of the stack into a boolean.
+   * Operation:
+   *   Conver the operand into a conditional (boolean) reference using the test
+   *   function and push it to the stack (without popping).
    *
    * Format:
-   *   (ToBoolean test:#function)
+   *   (Test test:#function)
    * Operand Stack:
    *   ..., VersionedPathReference →
-   *   ..., boolean
+   *   ..., VersionedPathReference, ConditionalReference
    * Description:
-   *   TODO: ToBoolean should be global in the env
+   *   TODO: Test should be global in the env
    */
-  ToBoolean,
+  Test,
 
   /// LISTS
 
@@ -666,9 +678,9 @@ export const enum Op {
    *   a runtime-resolved component definition.
    *
    * Format:
-   *   (PushDynamicComponentManager local:u32)
+   *   (PushDynamicComponentManager)
    * Operand Stack:
-   *   ... →
+   *   ... Reference<ComponentDefinition> →
    *   ..., ComponentDefinition, ComponentManager
    */
   PushDynamicComponentManager,
@@ -931,11 +943,12 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): any
     case Op.Constant: return ['Constant', { value: c.getOther(op1) }];
     case Op.PushReifiedArgs: return ['PushReifiedArgs', { positional: op1, names: c.getArray(op2).map(n => c.getString(n)), flag: op3 }];
     case Op.Primitive: return ['Primitive', { primitive: op1 }];
+    case Op.Dup: return ['Dup'];
     case Op.Pop: return ['Pop'];
 
     /// COMPONENTS
     case Op.PushComponentManager: return ['PushComponentManager', { definition: c.getOther(op1) }];
-    case Op.PushDynamicComponentManager: return ['PushDynamicComponentManager', { local: op1 }];
+    case Op.PushDynamicComponentManager: return ['PushDynamicComponentManager'];
     case Op.SetComponentState: return ['SetComponentState', { local: op1 }];
     case Op.PushComponentArgs: return ['PushComponentArgs', { positional: op1, named: op2, dict: c.getOther(op3) }];
     case Op.CreateComponent: return ['CreateComponent', { flags: op1, state: op2 }];
@@ -974,7 +987,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): any
     case Op.Jump: return ['Jump', { to: op1 }];
     case Op.JumpIf: return ['JumpIf', { to: op1 }];
     case Op.JumpUnless: return ['JumpUnless', { to: op1 }];
-    case Op.ToBoolean: return ['ToBoolean'];
+    case Op.Test: return ['Test', { func: c.getFunction(op1).name }];
     case Op.Text: return ['Text', { text: c.getString(op1) }];
     case Op.Comment: return ['Comment', { comment: c.getString(op1) }];
     case Op.DynamicContent: return ['DynamicContent', { value: c.getOther(op1) }];

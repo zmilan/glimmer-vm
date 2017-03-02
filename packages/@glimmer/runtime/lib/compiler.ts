@@ -116,21 +116,15 @@ class WrappedBuilder implements InnerLayoutBuilder {
     // let state = b.local();
     // b.setLocal(state);
 
-    let tag = 0;
-
     if (dynamicTag) {
-      tag = b.local();
-
       expr(dynamicTag, b);
-      b.setLocal(tag);
 
-      b.getLocal(tag);
       b.test('simple');
 
       b.jumpUnless('BODY');
 
+      b.dup();
       b.pushComponentOperations();
-      b.getLocal(tag);
       b.openDynamicElement();
     } else if (staticTag) {
       b.pushComponentOperations();
@@ -153,8 +147,6 @@ class WrappedBuilder implements InnerLayoutBuilder {
     b.invokeStatic(layout.asBlock());
 
     if (dynamicTag) {
-      b.getLocal(tag);
-
       b.test('simple');
       b.jumpUnless('END');
 
@@ -254,32 +246,33 @@ export class ComponentBuilder implements IComponentBuilder {
   }
 
   dynamic(definitionArgs: ComponentArgs, getDefinition: DynamicComponentDefinition, args: ComponentArgs) {
-    this.builder.unit(b => {
-      let [, hash, block, inverse] = args;
+    let { builder } = this;
 
-      if (!definitionArgs || definitionArgs.length === 0) {
-        throw new Error("Dynamic syntax without an argument");
-      }
+    let [, hash, block, inverse] = args;
 
-      let meta = this.builder.meta.templateMeta;
+    if (!definitionArgs || definitionArgs.length === 0) {
+      throw new Error("Dynamic syntax without an argument");
+    }
 
-      function helper(vm: PublicVM, args: Component.Arguments) {
-        return getDefinition(vm, args, meta);
-      }
+    let meta = this.builder.meta.templateMeta;
 
-      let definition = b.local();
-      expr([Ops.ClientSideExpression, ClientSide.Ops.ResolvedHelper, helper, definitionArgs[0], definitionArgs[1]], b);
+    function helper(vm: PublicVM, args: Component.Arguments) {
+      return getDefinition(vm, args, meta);
+    }
 
-      b.setLocal(definition);
-      b.getLocal(definition);
-      b.test('simple');
+    expr([Ops.ClientSideExpression, ClientSide.Ops.ResolvedHelper, helper, definitionArgs[0], definitionArgs[1]], builder);
 
-      b.labelled(b => {
-        b.jumpUnless('END');
+    builder.test('simple');
 
-        b.pushDynamicComponentManager(definition);
-        b.invokeComponent(null, null, hash, block, inverse);
-      });
+    builder.labelled(b => {
+      b.jumpUnless('ELSE');
+
+      b.pushDynamicComponentManager();
+      b.invokeComponent(null, null, hash, block, inverse);
+
+      b.label('ELSE');
+
+      b.pop();
     });
   }
 }

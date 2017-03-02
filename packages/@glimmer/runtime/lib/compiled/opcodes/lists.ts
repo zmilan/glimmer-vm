@@ -35,7 +35,7 @@ APPEND_OPCODES.add(Op.ExitList, vm => vm.exitList());
 
 APPEND_OPCODES.add(Op.Iterate, (vm, { op1: breaks, op2: start, op3: end }) => {
   let stack = vm.evalStack;
-  let item = stack.top<ReferenceIterator>().next();
+  let item = stack.peek<ReferenceIterator>().next();
 
   if (item) {
     let tryOpcode = vm.iterate(start, end, item.memo, item.value);

@@ -27,8 +27,10 @@ APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: _definition }) => {
   stack.push(definition.manager);
 });
 
-APPEND_OPCODES.add(Op.PushDynamicComponentManager, (vm, { op1: local }) => {
-  let reference = vm.getLocal<VersionedPathReference<ComponentDefinition<Opaque>>>(local);
+APPEND_OPCODES.add(Op.PushDynamicComponentManager, vm => {
+  let stack = vm.evalStack;
+
+  let reference = stack.pop<VersionedPathReference<ComponentDefinition<Opaque>>>();
   let cache = isConst(reference) ? undefined : new ReferenceCache<ComponentDefinition<Opaque>>(reference);
   let definition = cache ? cache.peek() : reference.value();
 

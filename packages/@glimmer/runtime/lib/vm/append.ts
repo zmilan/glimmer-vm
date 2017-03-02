@@ -55,11 +55,15 @@ export class EvaluationStack {
     this.stack.push(value);
   }
 
+  dup() {
+    this.push(this.peek());
+  }
+
   pop<T>(): T {
     return this.stack.pop() as T;
   }
 
-  top<T>(): T {
+  peek<T>(): T {
     return this.stack[this.stack.length - 1] as T;
   }
 
@@ -204,7 +208,7 @@ export default class VM implements PublicVM {
 
     let state = this.capture();
     let tracker = this.stack().pushBlockList(updating);
-    let artifacts = this.evalStack.top<ReferenceIterator>().artifacts;
+    let artifacts = this.evalStack.peek<ReferenceIterator>().artifacts;
 
     let opcode = new ListBlockOpcode(start, end, state, tracker, updating, artifacts);
 

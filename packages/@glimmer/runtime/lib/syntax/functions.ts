@@ -323,21 +323,21 @@ STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder) => {
 
   builder.startLabels();
 
-  let definition = builder.local();
   expr([Ops.ClientSideExpression, ClientSide.Ops.ResolvedHelper, helper, [name], null], builder);
 
-  builder.setLocal(definition);
-  builder.getLocal(definition);
   builder.test('simple');
 
   builder.labelled(b => {
-    b.jumpUnless('END');
+    b.jumpUnless('ELSE');
 
-    b.getLocal(definition);
     b.getPartialTemplate();
     b.compileDynamicBlock();
     b.invokeDynamic(new PartialInvoker(symbols, evalInfo));
     b.popScope();
+
+    b.label('ELSE');
+
+    b.pop();
   });
 });
 
@@ -642,11 +642,8 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       throw new Error(`SYNTAX ERROR: #if requires a single argument`);
     }
 
-    let condition = builder.local();
     expr(params[0], builder);
-    builder.setLocal(condition);
 
-    builder.getLocal(condition);
     builder.test('environment');
 
     builder.labelled(b => {
@@ -684,11 +681,8 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       throw new Error(`SYNTAX ERROR: #unless requires a single argument`);
     }
 
-    let condition = builder.local();
     expr(params[0], builder);
-    builder.setLocal(condition);
 
-    builder.getLocal(condition);
     builder.test('environment');
 
     builder.labelled(b => {
@@ -726,27 +720,20 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       throw new Error(`SYNTAX ERROR: #with requires a single argument`);
     }
 
-    let item = builder.local();
     expr(params[0], builder);
-    builder.setLocal(item);
 
-    builder.getLocal(item);
     builder.test('environment');
 
     builder.labelled(b => {
       if (_default && inverse) {
         b.jumpUnless('ELSE');
-        b.invokeStatic(_default, b => {
-          b.getLocal(item);
-        });
+        b.invokeStatic(_default, 1);
         b.jump('END');
         b.label('ELSE');
         b.invokeStatic(inverse);
       } else if (_default) {
         b.jumpUnless('END');
-        b.invokeStatic(_default, b => {
-          b.getLocal(item);
-        });
+        b.invokeStatic(_default, 1);
       } else {
         throw unreachable();
       }
@@ -827,16 +814,12 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       throw new Error(`SYNTAX ERROR: #-in-element requires a single argument`);
     }
 
-    let element = builder.local();
     expr(params[0], builder);
-    builder.setLocal(element);
 
-    builder.getLocal(element);
     builder.test('simple');
 
     builder.labelled(b => {
       b.jumpUnless('END');
-      b.getLocal(element);
       b.pushRemoteElement();
       b.invokeStatic(unwrap(_default));
       b.popRemoteElement();

@@ -150,8 +150,8 @@ export abstract class BasicOpcodeBuilder {
     this.push(Op.PushComponentManager, this.other(definition));
   }
 
-  pushDynamicComponentManager(local: number) {
-    this.push(Op.PushDynamicComponentManager, local);
+  pushDynamicComponentManager() {
+    this.push(Op.PushDynamicComponentManager);
   }
 
   setComponentState(local: number) {
@@ -354,6 +354,10 @@ export abstract class BasicOpcodeBuilder {
     this.push(Op.GetLocal, pos);
   }
 
+  dup() {
+    return this.push(Op.Dup);
+  }
+
   pop() {
     return this.push(Op.Pop);
   }
@@ -540,7 +544,7 @@ export abstract class BasicOpcodeBuilder {
     }
 
     let func = this.constants.function(_func);
-    this.push(Op.ToBoolean, func);
+    this.push(Op.Test, func);
   }
 
   jump(target: string) {
