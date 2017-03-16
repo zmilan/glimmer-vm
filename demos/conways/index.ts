@@ -1,5 +1,6 @@
 import { TestEnvironment, TestDynamicScope } from '@glimmer/test-helpers';
 import { UpdatableReference } from '@glimmer/object-reference';
+import { RenderResult } from "@glimmer/runtime";
 
 // // Bare version
 // const app = `{{#each world.cells key="key" as |cell|}}<organism-cell class="{{if cell.isAlive "alive" ""}}" style="top: {{cell.y}}0px; left: {{cell.x}}0px"/>{{/each}}`;
@@ -10,7 +11,7 @@ const app = `<div class="world">{{#each world.cells key="key" as |cell|}}<organi
 let env = new TestEnvironment();
 
 env.registerEmberishGlimmerComponent('organism-cell-component', null,
-  `<organism-cell class="{{if @cell.isAlive "alive" ""}}" style="top: {{@cell.y}}px; left: {{@cell.x}}px" />`);
+  `<div class="{{if @cell.isAlive "alive" ""}}" style="top: {{@cell.y}}px; left: {{@cell.x}}px" />`);
 
 function getWorld(): World {
   /* tslint:disable: no-require-imports */
@@ -18,14 +19,24 @@ function getWorld(): World {
   /* tslint:enable: no-require-imports */
 }
 
-let res;
-let self;
+let self: UpdatableReference<{ world: World }>;
+let res: RenderResult;
+
 export function startGlimmer() {
   let world = getWorld();
   env.begin();
   self = new UpdatableReference({ world });
-  res = env.compile(app).render(self, document.body, new TestDynamicScope());
+  let iterator = env.compile(app).render(self, document.body, new TestDynamicScope());
+
+  let result;
+  do {
+    result = iterator.next();
+  } while (!result.done);
+
   env.commit();
+  if (result.value) {
+    res = result.value;
+  }
 
   requestAnimationFrame(rerenderGlimmer);
 }

@@ -6,7 +6,8 @@ var mergeTrees = require('broccoli-merge-trees');
 var rename = require('broccoli-stew').rename;
 
 // Gather only the files we need from Handlebars npm package
-var handlebarsRoot = path.dirname(require.resolve('handlebars'));
+var handlebarsRoot = path.dirname(require.resolve('handlebars/package')) + '/lib';
+console.log('HANDLEBARS ROOT', handlebarsRoot);
 var handlebars = new Funnel(handlebarsRoot, {
     files: [
       'handlebars/utils.js',
@@ -22,10 +23,10 @@ var handlebars = new Funnel(handlebarsRoot, {
 });
 
 // Get our shim file for the Handlebars entry point, which includes just the parser bits and not everything else in Handlebars.
-var glimmerSyntaxRoot = __dirname + "/../packages/@glimmer/syntax";
+var glimmerSyntaxRoot = __dirname + "/../../packages/@glimmer/syntax";
 var handlebarsShim = rename(new Funnel(glimmerSyntaxRoot, {
     files: ['handlebars-shim.js']
-}), 'handlebars-shim.js', 'handlebars.js');
+}), 'handlebars-shim.js', 'index.js');
 
 module.exports = {
   compiler: mergeTrees([handlebars, handlebarsShim])

@@ -6,6 +6,7 @@
 // 3. clean up the UI of the report (post-MVP)
 
 import { dict } from '@glimmer/util';
+import Benchmark from 'benchmark';
 
 Benchmark.support.decompilation = false;
 

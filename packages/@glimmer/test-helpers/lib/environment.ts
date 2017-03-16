@@ -1,4 +1,4 @@
-import { EMPTY_ARRAY } from '../../runtime/lib/utils';
+import { EMPTY_ARRAY } from '@glimmer/runtime';
 import {
   // VM
   VM,

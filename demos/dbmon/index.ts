@@ -4,7 +4,7 @@ import ExponentialMovingAverage from './ema';
 
 class Component {
   public attrs: any;
-  public element: Element = null;
+  public element: Element | null = null;
 
   static create({ attrs }: { attrs: any }): Component {
     return new this(attrs);

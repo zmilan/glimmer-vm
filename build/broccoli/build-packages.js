@@ -6,6 +6,8 @@ const DAGMap = require('dag-map').default;
 const glob = require('glob');
 const path = require('path');
 
+const stew = require('broccoli-stew');
+
 const TSCONFIG_PATH = `${__dirname}/../../build/tsconfig.json`;
 const PACKAGES_PATH = `${__dirname}/../../packages`;
 
@@ -74,7 +76,8 @@ function topsortPackages() {
 function treeForPackage(packagePath) {
   let packageTree = buildPackage({
     projectPath: packagePath,
-    tsconfigPath: TSCONFIG_PATH
+    tsconfigPath: TSCONFIG_PATH,
+    include: ['lib/**/*.ts', 'index.ts']
   });
 
   let packageJSONTree = treeForPackageJSON(packagePath);

@@ -2,6 +2,7 @@
   <head>
     <title>Conway's Game of Life</title>
     <style type="text/css">
+
       html, body {
         margin: 0;
         padding: 0;
@@ -28,17 +29,12 @@
       }
     </style>
     <script src="http://static.iamstef.net/conways.js"></script>
-    <script>loader.noConflict({ define: 'enifed' });</script>
-    <script src="../amd/glimmer-common.amd.js"></script>
-    <script src="../amd/glimmer-compiler.amd.js"></script>
-    <script src="../amd/glimmer-runtime.amd.js"></script>
-    <script src="../amd/glimmer-demos.amd.js"></script>
+    <script src="./index.js"></script>
   </head>
   <body>
     <script type="application/javascript">
-      var ConwaysDemo = require("glimmer-demos").ConwaysDemo;
     </script>
-    <button onclick="ConwaysDemo.startGlimmer();">Start (Glimmer)</button>
-    <button onclick="ConwaysDemo.startDOM();">Start (DOM)</button>
+    <button onclick="conways.startGlimmer();">Start (Glimmer)</button>
+    <button onclick="conways.startDOM();">Start (DOM)</button>
   </body>
 </html>

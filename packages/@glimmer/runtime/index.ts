@@ -26,6 +26,10 @@ export {
 } from './lib/compiled/blocks';
 
 export {
+  EMPTY_ARRAY
+} from './lib/utils';
+
+export {
   AttributeManager as IAttributeManager,
   AttributeManager,
   PropertyManager,

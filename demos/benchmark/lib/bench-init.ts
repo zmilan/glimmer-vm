@@ -1,13 +1,10 @@
 import { BenchmarkReporter, BenchmarkEnvironment, BenchmarkScenario, BenchmarkSuite } from './bench';
 import { TestReporter, TestBenchmarkEnvironment } from './bench-infra';
-
-declare function require(module: string): any;
+import Suites from './bench-suites';
 
 interface ScenarioClass {
   new(reporter: BenchmarkReporter, env: BenchmarkEnvironment): BenchmarkScenario;
 }
-
-import Suites from './bench-suites';
 
 export function init() {
   let options = getJsonFromUrl();
@@ -25,9 +22,7 @@ export function init() {
     return;
   }
 
-  /* tslint:disable:no-require-imports */
-  let scenarios: ScenarioClass[] = require('@glimmer/benchmarks').Suites[options['suite']];
-  /* tslint:enable:no-require-imports */
+  let scenarios: ScenarioClass[] = Suites[options['suite']];
   let suite = new BenchmarkSuite();
   let env = new TestBenchmarkEnvironment();
   let reporter = new TestReporter();

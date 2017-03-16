@@ -32,18 +32,12 @@
     </style>
   </head>
   <body>
-    <button id="playpause" onclick='Dbmon.toggle()'>Play</button>
+    <button id="playpause" onclick='dbmon.Dbmon.toggle()'>Play</button>
     <div id="output"></div>
 
-    <script src="../assets/loader.js"></script>
-    <script>loader.noConflict({ define: 'enifed' });</script>
-    <script src="../amd/glimmer-common.amd.js"></script>
-    <script src="../amd/glimmer-compiler.amd.js"></script>
-    <script src="../amd/glimmer-runtime.amd.js"></script>
-    <script src="../amd/glimmer-demos.amd.js"></script>
+    <script src="./index.js"></script>
     <script>
-      var Dbmon = require("glimmer-demos").Dbmon;
-      Dbmon.init();
+      dbmon.Dbmon.init();
     </script>
   </body>
 </html>

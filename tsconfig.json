@@ -30,13 +30,11 @@
     }
   },
   "include": [
-    "packages/**/*.ts"
+    "packages/**/*.ts",
+    "demos/**/*.ts"
   ],
   "exclude": [
     "dist",
-    "demos",
-    "packages/glimmer-demos",
-    "packages/glimmer-benchmarks",
     "tmp",
     "node_modules",
     ".vscode"
