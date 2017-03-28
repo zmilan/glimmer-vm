@@ -313,11 +313,11 @@ export default class VM implements PublicVM {
   }
 
   listBlock(): ListBlockOpcode {
-    return this.listBlockStack.current;
+    return this.listBlockStack.current!;
   }
 
   updating(): LinkedList<UpdatingOpcode> {
-    return this.updatingOpcodeStack.current;
+    return this.updatingOpcodeStack.current!;
   }
 
   elements(): ElementStack {
@@ -325,11 +325,11 @@ export default class VM implements PublicVM {
   }
 
   scope(): Scope {
-    return this.scopeStack.current;
+    return this.scopeStack.current!;
   }
 
   dynamicScope(): DynamicScope {
-    return this.dynamicScopeStack.current;
+    return this.dynamicScopeStack.current!;
   }
 
   pushChildScope() {
@@ -337,7 +337,7 @@ export default class VM implements PublicVM {
   }
 
   pushCallerScope(childScope = false) {
-    let callerScope = this.scope().getCallerScope();
+    let callerScope = this.scope().getCallerScope()!;
     this.scopeStack.push(childScope ? callerScope.child() : callerScope);
   }
 
@@ -382,34 +382,31 @@ export default class VM implements PublicVM {
     this.pc = start;
 
     if (initialize) initialize(this);
-
     let result: IteratorResult<RenderResult>;
 
-    while (true) {
+    do {
       result = this.next();
-      if (result.done) break;
-    }
+    } while(!result.done);
 
-    return result.value as RenderResult;
+    return result.value;
   }
 
   next(): IteratorResult<RenderResult> {
     let { env, updatingOpcodeStack, elementStack } = this;
-    let opcode: Option<Opcode>;
-
-    if (opcode = this.nextStatement(env)) {
+    let done = false;
+    let value: RenderResult | null = null;
+    let opcode = this.nextStatement(env);
+    if (opcode !== null) {
       APPEND_OPCODES.evaluate(this, opcode, opcode.type);
-      return { done: false, value: null };
-    }
-
-    return {
-      done: true,
-      value: new RenderResult(
+    } else {
+      done = true;
+      value = new RenderResult(
         env,
-        updatingOpcodeStack.pop(),
+        updatingOpcodeStack.pop()!,
         elementStack.popBlock()
-      )
-    };
+      );
+    }
+    return { done, value } as IteratorResult<RenderResult>;
   }
 
   private nextStatement(env: Environment): Option<Opcode> {
